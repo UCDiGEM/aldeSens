@@ -92,10 +92,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::setupDemo(int demoIndex)
 {
-    switch (demoIndex)
-    {
-    case 3:  setupAldeSensGraph(ui->customPlot); break;
-    }
+
     setupAldeSensGraph(ui->customPlot);
     setWindowTitle("aldeSens");
 
@@ -306,7 +303,6 @@ void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
                 key += 0.5;
 
             }
-            qDebug() << key;
             ui->customPlot->replot();
         }
         // make key axis range scroll with the data (at a constant range size of 8):
