@@ -1,5 +1,5 @@
 /* aldeSens - UC Davis iGEM 2014
-/
+/  Written by E. Aaron Cohen
 */
 #include "ADC.h"
 
