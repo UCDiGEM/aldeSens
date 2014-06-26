@@ -47,35 +47,36 @@
 #include "qcustomplot.h" // the header file of QCustomPlot. Don't forget to add it to your project, if you use an IDE, so it gets compiled.
 
 namespace Ui {
-class MainWindow;
+    class MainWindow;
 }
 
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
-  
-public:
-  explicit MainWindow(QWidget *parent = 0);
-  ~MainWindow();
-  
-  void setupDemo(int demoIndex);
-  void setupAldeSensGraph(QCustomPlot *customPlot);
-  
-private slots:
-  void parseAndPlot();
-  void selectionChanged();
-  void screenShot();
-  void allScreenShots();
-  void mouseWheel();
-  void mousePress();
-  void on_pushButton_clicked();
 
-private:
-  Ui::MainWindow *ui;
-  QString demoName;
-  QTimer dataTimer;
-  QCPItemTracer *itemDemoPhaseTracer;
-  int currentDemoIndex;
+    public:
+      explicit MainWindow(QWidget *parent = 0);
+      ~MainWindow();
+
+      void setupDemo(int demoIndex);
+      void setupAldeSensGraph(QCustomPlot *customPlot);
+      void setUpComPort();
+
+    private slots:
+      void parseAndPlot();
+      void mouseWheel();
+      void mousePress();
+      void sampleButtonPressed();
+      void reconnectButtonPressed();
+      void clearButtonPressed();
+
+    private:
+      Ui::MainWindow *ui;
+      QString demoName;
+      QTimer dataTimer;
+      QCPItemTracer *itemDemoPhaseTracer;
+      int currentDemoIndex;
 };
 
 #endif // MAINWINDOW_H
+
