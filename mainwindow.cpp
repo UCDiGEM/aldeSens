@@ -67,9 +67,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->customPlot->yAxis->setRange(0, 3.3);
 
     fillPortsInfo();
-    setUpComPort();
+    //setUpComPort();
 
-    setupDemo(3);
+    setupDemo();
 
     connect(ui->sampButton, SIGNAL(clicked()), this, SLOT(sampleButtonPressed()));
     connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
@@ -110,13 +110,12 @@ void MainWindow::setUpComPort()
 /********************************************* CREATE THE GRAPH **********************************************/
 /*************************************************************************************************************/
 
-void MainWindow::setupDemo(int demoIndex)
+void MainWindow::setupDemo()
 {
 
     setupAldeSensGraph(ui->customPlot);
     setWindowTitle("AldeSense");
 
-    currentDemoIndex = demoIndex;
     ui->customPlot->replot();
 }
 
@@ -135,11 +134,11 @@ void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
 
     // make left and bottom axes transfer their ranges to right and top axes:
 
-    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
-    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
+//    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
+//    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-    connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
-    connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
+//    connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
+//    connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 /*************************************************************************************************************/
@@ -186,6 +185,7 @@ void MainWindow::mouseWheel()
 
 void MainWindow::sampleButtonPressed()
 {
+    dataTimer.stop();
     serial.write("cycVolt01223344,");
 
     ui->customPlot->clearGraphs();
@@ -194,6 +194,7 @@ void MainWindow::sampleButtonPressed()
     QTimer::singleShot(1000, this, SLOT(sampleParseAndPlot()));
 
     ui->sampButton->setText(QString("Resample"));
+    ui->startPushButton->setText(QString("Start"));
 }
 
 /*************************************************************************************************************/
@@ -234,74 +235,56 @@ void MainWindow::cyclicParseAndPlot(QCustomPlot *customPlot)
     statusBar()->clearMessage();
     demoName = "Real Time Data Demo";
 
-  customPlot->addGraph(); // blue line
-  customPlot->graph(0)->setPen(QPen(Qt::blue));
-  customPlot->graph(0)->setBrush(QBrush(QColor(240, 255, 200)));
-  customPlot->graph(0)->setAntialiasedFill(false);
-  customPlot->addGraph(); // red line
-  customPlot->graph(1)->setPen(QPen(Qt::red));
-  customPlot->graph(0)->setChannelFillGraph(customPlot->graph(1));
+    customPlot->addGraph(); // blue line
+    customPlot->graph(0)->setPen(QPen(Qt::blue));
+    customPlot->graph(0)->setBrush(QBrush(QColor(240, 255, 200)));
+    customPlot->graph(0)->setAntialiasedFill(false);
 
-  customPlot->addGraph(); // blue dot
-  customPlot->graph(2)->setPen(QPen(Qt::blue));
-  customPlot->graph(2)->setLineStyle(QCPGraph::lsNone);
-  customPlot->graph(2)->setScatterStyle(QCPScatterStyle::ssDisc);
-  customPlot->addGraph(); // red dot
-  customPlot->graph(3)->setPen(QPen(Qt::red));
-  customPlot->graph(3)->setLineStyle(QCPGraph::lsNone);
-  customPlot->graph(3)->setScatterStyle(QCPScatterStyle::ssDisc);
+    customPlot->addGraph(); // blue dot
+    customPlot->graph(1)->setPen(QPen(Qt::red));
+    customPlot->graph(1)->setScatterStyle(QCPScatterStyle::ssDisc);
 
-  customPlot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
-  customPlot->xAxis->setDateTimeFormat("hh:mm:ss");
-  customPlot->xAxis->setAutoTickStep(false);
-  customPlot->xAxis->setTickStep(2);
-  customPlot->axisRect()->setupFullAxesBox();
+    customPlot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
+    customPlot->xAxis->setDateTimeFormat("hh:mm:ss");
+    customPlot->xAxis->setAutoTickStep(false);
+    customPlot->xAxis->setTickStep(2);
+    customPlot->axisRect()->setupFullAxesBox();
 
-  // make left and bottom axes transfer their ranges to right and top axes:
-  connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
-  connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
+    // make left and bottom axes transfer their ranges to right and top axes:
+    connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-  // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
-  connect(&dataTimer, SIGNAL(timeout()), this, SLOT(realtimeDataSlot()));
-  dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+    //setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
+    connect(&dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
+    dataTimer.start(0); // Interval 0 means to refresh as fast as possible
 }
 
-void MainWindow::realtimeDataSlot()
-{
-  double key = QDateTime::currentDateTime().toMSecsSinceEpoch()/1000.0;
-  static double lastPointKey = 0;
-  if (key-lastPointKey > 0.01) // at most add point every 10 ms
-  {
-    double value0 = (serial.readLine()).toDouble();
-    // add data to lines:
-    ui->customPlot->graph(0)->addData(key, value0);
-    // set data of dots:
-    ui->customPlot->graph(2)->clearData();
-    ui->customPlot->graph(2)->addData(key, value0);
-    // remove data of lines that's outside visible range:
-    ui->customPlot->graph(0)->removeDataBefore(key-8);
-    // rescale value (vertical) axis to fit the current data:
-    ui->customPlot->graph(0)->rescaleValueAxis();
-    lastPointKey = key;
-  }
-  // make key axis range scroll with the data (at a constant range size of 8):
-  ui->customPlot->xAxis->setRange(key+0.25, 8, Qt::AlignRight);
-  ui->customPlot->replot();
+/*************************************************************************************************************/
+/******** READ DATA FROM SERIAL PORT AND GRAPH THE VALUES FOR CYCLIC VOLTAMETRY GRAPH IN REALTIME ************/
+/*************************************************************************************************************/
 
-  // calculate frames per second:
-  static double lastFpsKey;
-  static int frameCount;
-  ++frameCount;
-  if (key-lastFpsKey > 2) // average fps over 2 seconds
-  {
-    ui->statusBar->showMessage(
-          QString("%1 FPS, Total Data points: %2")
-          .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-          .arg(ui->customPlot->graph(0)->data()->count()+ui->customPlot->graph(1)->data()->count())
-          , 0);
-    lastFpsKey = key;
-    frameCount = 0;
-  }
+void MainWindow::realtimeData()
+{
+    double xValues = QDateTime::currentDateTime().toMSecsSinceEpoch()/1000.0;
+    static double lastPointKey = 0;
+    if (xValues-lastPointKey > 0.01) // at most add point every 10 ms
+    {
+        serial.write("cycVolt01223344,");
+        double value0 = (serial.readLine()).toDouble();
+        // add data to lines
+        ui->customPlot->graph(0)->addData(xValues, value0);
+        // set data of dots:
+        ui->customPlot->graph(1)->clearData();
+        ui->customPlot->graph(1)->addData(xValues, value0);
+        // remove data of lines that's outside visible range:
+        ui->customPlot->graph(0)->removeDataBefore(xValues-8);
+        // rescale value (vertical) axis to fit the current data:
+        ui->customPlot->graph(0)->rescaleValueAxis();
+        lastPointKey = xValues;
+    }
+    //make key axis range scroll with the data (at a constant range size of 8):
+    ui->customPlot->xAxis->setRange(xValues+0.25, 8, Qt::AlignRight);
+    ui->customPlot->replot();
 }
 
 /*************************************************************************************************************/
@@ -324,6 +307,7 @@ void MainWindow::reconnectButtonPressed()
 
 void MainWindow::clearButtonPressed()
 {
+    dataTimer.stop();
     for (int i = 0; i < 2000; i++){
         xSampleValues[i] = 0;
         ySampleValues[i] = 0;
@@ -342,7 +326,6 @@ void MainWindow::clearButtonPressed()
 void MainWindow::clearPushButtonPressed()
 {
     dataTimer.stop();
-    QObject::killTimer(0);
     ui->customPlot->clearGraphs();
     ui->customPlot->replot();
     ui->sampButton->setText(QString("Sample"));
@@ -393,21 +376,25 @@ void MainWindow::stopButtonPressed()
     dataTimer.stop();
 }
 
+/*************************************************************************************************************/
+/********************** FILLS DROP DOWN MENU FOR SERIAL PORT INFO ON SETTINGS TAB IN GUI *********************/
+/*************************************************************************************************************/
+
 void MainWindow::fillPortsInfo()
 {
     ui->serialPortInfoListBox->clear();
     static const QString blankString = QObject::tr("N/A");
-    QString description;
-    QString manufacturer;
+//    QString description;
+//    QString manufacturer;
 
     foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
         QStringList list;
-        description = info.description();
-        manufacturer = info.manufacturer();
-        list << info.portName()
-             << (!description.isEmpty() ? description : blankString)
-             << (!manufacturer.isEmpty() ? manufacturer : blankString)
-             << info.systemLocation();
+//        description = info.description();
+//        manufacturer = info.manufacturer();
+        list << info.portName();
+//             << (!description.isEmpty() ? description : blankString)
+//             << (!manufacturer.isEmpty() ? manufacturer : blankString)
+//             << info.systemLocation();
 
         ui->serialPortInfoListBox->addItem(list.first(), list);
     }

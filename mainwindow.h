@@ -68,7 +68,7 @@ class MainWindow : public QMainWindow
       double xSampleValues[2000];
       double ySampleValues[2000];
 
-      void setupDemo(int demoIndex);
+      void setupDemo();
       void setupAldeSensGraph(QCustomPlot *customPlot);
       void setUpComPort();
 
@@ -84,10 +84,8 @@ class MainWindow : public QMainWindow
       void integrateButtonPressed();
       void startButtonPressed();
       void stopButtonPressed();
-      void realtimeDataSlot();
-      //void showPortsInfo();
+      void realtimeData();
       void fillPortsInfo();
-      //void updateSettings();
 };
 
 #endif // MAINWINDOW_H
