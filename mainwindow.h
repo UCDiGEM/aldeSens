@@ -44,7 +44,8 @@
 
 #include <QMainWindow>
 #include <QTimer>
-#include "qcustomplot.h" // the header file of QCustomPlot. Don't forget to add it to your project, if you use an IDE, so it gets compiled.
+#include <QVector>
+#include "qcustomplot.h"
 
 namespace Ui {
     class MainWindow;
@@ -58,24 +59,35 @@ class MainWindow : public QMainWindow
       explicit MainWindow(QWidget *parent = 0);
       ~MainWindow();
 
-      void setupDemo(int demoIndex);
-      void setupAldeSensGraph(QCustomPlot *customPlot);
-      void setUpComPort();
-
-    private slots:
-      void parseAndPlot();
-      void mouseWheel();
-      void mousePress();
-      void sampleButtonPressed();
-      void reconnectButtonPressed();
-      void clearButtonPressed();
-
     private:
       Ui::MainWindow *ui;
       QString demoName;
       QTimer dataTimer;
       QCPItemTracer *itemDemoPhaseTracer;
       int currentDemoIndex;
+      double xSampleValues[2000];
+      double ySampleValues[2000];
+
+      void setupDemo(int demoIndex);
+      void setupAldeSensGraph(QCustomPlot *customPlot);
+      void setUpComPort();
+
+    private slots:
+      void sampleParseAndPlot();
+      void cyclicParseAndPlot(QCustomPlot *customPlot);
+      void mouseWheel();
+      void mousePress();
+      void sampleButtonPressed();
+      void reconnectButtonPressed();
+      void clearButtonPressed();
+      void clearPushButtonPressed();
+      void integrateButtonPressed();
+      void startButtonPressed();
+      void stopButtonPressed();
+      void realtimeDataSlot();
+      //void showPortsInfo();
+      void fillPortsInfo();
+      //void updateSettings();
 };
 
 #endif // MAINWINDOW_H
