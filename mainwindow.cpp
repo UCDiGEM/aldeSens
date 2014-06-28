@@ -17,27 +17,11 @@
 **  along with this program.  If not, see http://www.gnu.org/licenses/.   **
 **                                                                        **
 ****************************************************************************
-**           Author: Emanuel Eichhammer                                   **
-**  Website/Contact: http://www.qcustomplot.com/                          **
-**             Date: 07.04.14                                             **
-**          Version: 1.2.1                                                **
+**                      Author: Emanuel Eichhammer                        **
+**              Website/Contact: http://www.qcustomplot.com/              **
+**                      Date: 07.04.14                                    **
+**                      Version: 1.2.1                                    **
 ****************************************************************************/
-
-/************************************************************************************************************
-**                                                                                                         **
-**  This is the example code for QCustomPlot.                                                              **
-**                                                                                                         **
-**  It demonstrates basic and some advanced capabilities of the widget. The interesting code is inside     **
-**  the "setup(...)Demo" functions of MainWindow.                                                          **
-**                                                                                                         **
-**  In order to see a demo in action, call the respective "setup(...)Demo" function inside the             **
-**  MainWindow constructor. Alternatively you may call setupDemo(i) where i is the index of the demo       **
-**  you want (for those, see MainWindow constructor comments). All other functions here are merely a       **
-**  way to easily create screenshots of all demos for the website. I.e. a timer is set to successively     **
-**  setup all the demos and make a screenshot of the window area and save it in the ./screenshots          **
-**  directory.                                                                                             **
-**                                                                                                         **
-*************************************************************************************************************/
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -69,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
     fillPortsInfo();
     //setUpComPort();
 
-    setupDemo();
+    setup();
 
     connect(ui->sampButton, SIGNAL(clicked()), this, SLOT(sampleButtonPressed()));
     connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
@@ -110,7 +94,7 @@ void MainWindow::setUpComPort()
 /********************************************* CREATE THE GRAPH **********************************************/
 /*************************************************************************************************************/
 
-void MainWindow::setupDemo()
+void MainWindow::setup()
 {
 
     setupAldeSensGraph(ui->customPlot);
@@ -186,6 +170,12 @@ void MainWindow::mouseWheel()
 void MainWindow::sampleButtonPressed()
 {
     dataTimer.stop();
+    dataTimer.disconnect();
+    delete ui->customPlot;
+    ui->customPlot = new QCustomPlot(ui->centralWidget);
+    ui->horizontalLayout->addWidget(ui->customPlot);
+    setup();
+
     serial.write("cycVolt01223344,");
 
     ui->customPlot->clearGraphs();
@@ -326,8 +316,11 @@ void MainWindow::clearButtonPressed()
 void MainWindow::clearPushButtonPressed()
 {
     dataTimer.stop();
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
+    dataTimer.disconnect();
+    delete ui->customPlot;
+    ui->customPlot = new QCustomPlot(ui->centralWidget);
+    ui->horizontalLayout->addWidget(ui->customPlot);
+    setup();
     ui->sampButton->setText(QString("Sample"));
     ui->startPushButton->setText(QString("Start"));
     ui->returnIntegrationValue->setText("0");
