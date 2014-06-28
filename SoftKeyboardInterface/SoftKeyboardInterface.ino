@@ -89,15 +89,15 @@ void mainController() {
 // sweepRate
 
 void cycVolt(int sampTime, int startVolt, int endVolt, int scanRate) {
-      int length = sampTime*2000; // With delay of 5 µs, 2000 samples per second
+      int length = sampTime*2000; // With delay of 500 µs, 2000 samples per second
       for (int i = 0; i < length; i++) {
         value = adc->analogRead(readPin);
 
         buffer->write(value);
 
         Serial.println(buffer->read()*3.3/adc->getMaxValue(ADC_0),5);
-        while (usec < 5); // wait
-        usec = usec - 5;
+        while (usec < 500); // wait
+        usec = usec - 500;
       }
       inStruct = "";
 }
