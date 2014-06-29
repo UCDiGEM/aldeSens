@@ -25,22 +25,16 @@
 
 /************************************************************************************************************
 **                                                                                                         **
-**  This is the example code for QCustomPlot.                                                              **
+**  This was developed from example code for QCustomPlot.                                                  **
+**  UC Davis iGEM 2014                                                                                     **
 **                                                                                                         **
-**  It demonstrates basic and some advanced capabilities of the widget. The interesting code is inside     **
-**  the "setup(...)Demo" functions of MainWindow.                                                          **
-**                                                                                                         **
-**  In order to see a demo in action, call the respective "setup(...)Demo" function inside the             **
-**  MainWindow constructor. Alternatively you may call setupDemo(i) where i is the index of the demo       **
-**  you want (for those, see MainWindow constructor comments). All other functions here are merely a       **
-**  way to easily create screenshots of all demos for the website. I.e. a timer is set to successively     **
-**  setup all the demos and make a screenshot of the window area and save it in the ./screenshots          **
-**  directory.                                                                                             **
 **                                                                                                         **
 *************************************************************************************************************/
 
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QMenuBar>
 #include <QDebug>
 #include <QDesktopWidget>
 #include <QScreen>
@@ -50,18 +44,41 @@
 #include <QSerialPortInfo>
 
 QSerialPort serial;
-int graphMemory = 0;
+
+/*************************************************************************************************************/
+/************************************************ CONSTRUCTOR ************************************************/
+/*************************************************************************************************************/
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom);
+    ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectAxes | QCP::iSelectPlottables);
 
     ui->customPlot->xAxis->setRange(0, 1000);
     ui->customPlot->yAxis->setRange(0, 3.3);
+    ui->customPlot->xAxis->setLabel("Milliseconds (ms)");
+    ui->customPlot->yAxis->setLabel("Volts (V)");
 
+    setUpComPort();
+
+    setupAldeSensGraph(ui->customPlot);
+
+    connect(ui->sampButtonCV, SIGNAL(clicked()), this, SLOT(sampCVPressed()));
+    connect(ui->sampButtonPA, SIGNAL(clicked()), this, SLOT(sampPAPressed()));
+    connect(ui->sampButtonAS, SIGNAL(clicked()), this, SLOT(sampASPressed()));
+    connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
+    connect(ui->clrButton, SIGNAL(clicked()), this, SLOT(clearButtonPressed()));
+}
+
+/*************************************************************************************************************/
+/******************************* INITIALIZE ALL SERIAL PORT DATA FOR SAMPLING ********************************/
+/*************************************************************************************************************/
+
+void MainWindow::setUpComPort()
+{
     serial.setPortName("com6");
     if (serial.open(QIODevice::ReadWrite))
     {
@@ -70,44 +87,28 @@ MainWindow::MainWindow(QWidget *parent) :
         serial.setParity(QSerialPort::NoParity);
         serial.setStopBits(QSerialPort::OneStop);
         serial.setFlowControl(QSerialPort::NoFlowControl);
-        ui->statusBar->showMessage(
-                    QString("COM Port Successfully Linked"));
-
+        ui->statusBar->showMessage(QString("COM Port Successfully Linked"));
     }
-    else{
+
+    else
+    {
         serial.close();
-        ui->statusBar->showMessage(
-                    QString("Unable to Reach COM Port"));
-
+        ui->statusBar->showMessage(QString("Unable to Reach COM Port"));
     }
-
-    setupDemo(3);
-    // 3:  setupScatterStyleDemo(ui->customPlot);
-
-
-    // for making screenshots of the current demo or all demos (for website screenshots):
-    //QTimer::singleShot(1500, this, SLOT(allScreenShots()));
-    //QTimer::singleShot(4000, this, SLOT(screenShot()));
 }
 
-void MainWindow::setupDemo(int demoIndex)
-{
-
-    setupAldeSensGraph(ui->customPlot);
-    setWindowTitle("aldeSens");
-
-    currentDemoIndex = demoIndex;
-    ui->customPlot->replot();
-}
-
-
-
+/*************************************************************************************************************/
+/************************************ INITIALIZE PROPERTIES OF THE GRAPH *************************************/
+/*************************************************************************************************************/
 
 void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
 {
+    setWindowTitle("AldeSense");
+
+    // applies a different color brush to the first 9 graphs
     for (int i=0; i<10; ++i) {
         customPlot->addGraph(); // blue line
-        customPlot->graph(i)->setBrush(QBrush(QColor(240, 255, 200)));
+        customPlot->graph(i)->setBrush(QBrush(QColor(240, 255, 200))); // I think this is the fill under the line, it's ugly.
         customPlot->graph(i)->setAntialiasedFill(false);
 
         switch (i) {
@@ -120,195 +121,296 @@ void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
         case 6: customPlot->graph(i)->setPen(QPen(Qt::darkRed)); break;
         case 7: customPlot->graph(i)->setPen(QPen(Qt::darkGreen)); break;
         case 8: customPlot->graph(i)->setPen(QPen(Qt::darkBlue)); break;
-
         }
     }
 
+    customPlot->xAxis->setTickStep(2);
+    customPlot->axisRect()->setupFullAxesBox();
 
+    // make left and bottom axes transfer their ranges to right and top axes:
+    connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-        customPlot->xAxis->setTickStep(2);
-        customPlot->axisRect()->setupFullAxesBox();
+    // connect slot that shows a message in the status bar when a graph is clicked:
+    connect(ui->customPlot, SIGNAL(plottableClick(QCPAbstractPlottable*,QMouseEvent*)), this, SLOT(graphClicked(QCPAbstractPlottable*)));
 
-        // connect slot that ties some axis selections together (especially opposite axes):
-        connect(ui->customPlot, SIGNAL(selectionChangedByUser()), this, SLOT(selectionChanged()));
+    // setup policy and connect slot for context menu popup:
+    ui->customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->customPlot, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenuRequest(QPoint)));
 
-        // make left and bottom axes transfer their ranges to right and top axes:
-        connect(customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->xAxis2, SLOT(setRange(QCPRange)));
-        connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
+    // connect slots that takes care that when an axis is selected, only that direction can be dragged and zoomed:
+    connect(ui->customPlot, SIGNAL(mousePress(QMouseEvent*)), this, SLOT(mousePress()));
+    connect(ui->customPlot, SIGNAL(mouseWheel(QWheelEvent*)), this, SLOT(mouseWheel()));
 
-        connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
-        connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->customPlot->yAxis2, SLOT(setRange(QCPRange)));
 
-    }
+    // connect slot that ties some axis selections together (especially opposite axes):
+    connect(ui->customPlot, SIGNAL(selectionChangedByUser()), this, SLOT(selectionChanged()));
 
-    void MainWindow::mousePress()
+    ui->customPlot->replot();
+}
+
+/*************************************************************************************************************/
+/********************************* ALLOW USERS TO CLICK AND DRAG THE GRAPH ***********************************/
+/*************************************************************************************************************/
+
+void MainWindow::mousePress()
+{
+    // if an axis is selected, only allow the direction of that axis to be dragged
+    // if no axis is selected, both directions may be dragged
+
+    if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->customPlot->axisRect()->setRangeDrag(ui->customPlot->xAxis->orientation());
+
+    else if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->customPlot->axisRect()->setRangeDrag(ui->customPlot->yAxis->orientation());
+
+    else
+        ui->customPlot->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+}
+
+/*************************************************************************************************************/
+/********************** ALLOW THE USERS TO SCROLL ON TOP OF THE GRAPH TO ZOOM IN AND OUT *********************/
+/*************************************************************************************************************/
+
+void MainWindow::mouseWheel()
+{
+    // if an axis is selected, only allow the direction of that axis to be zoomed
+    // if no axis is selected, both directions may be zoomed
+
+    if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->customPlot->axisRect()->setRangeZoom(ui->customPlot->xAxis->orientation());
+
+    else if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        ui->customPlot->axisRect()->setRangeZoom(ui->customPlot->yAxis->orientation());
+
+    else
+        ui->customPlot->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+}
+
+/*************************************************************************************************************/
+/*********************************** GRAPH SELECTION FUNCTIONS ***********************************************/
+/*************************************************************************************************************/
+
+void MainWindow::removeSelectedGraph()
+{
+  if (ui->customPlot->selectedGraphs().size() > 0)
+  {
+    ui->customPlot->removeGraph(ui->customPlot->selectedGraphs().first());
+    ui->customPlot->replot();
+  }
+}
+
+void MainWindow::removeAllGraphs()
+{
+  ui->customPlot->clearGraphs();
+  ui->customPlot->replot();
+}
+
+void MainWindow::contextMenuRequest(QPoint pos)
+{
+  QMenu *menu = new QMenu(this);
+  menu->setAttribute(Qt::WA_DeleteOnClose);
+
+    if (ui->customPlot->selectedGraphs().size() > 0)
+      menu->addAction("Remove selected graph", this, SLOT(removeSelectedGraph()));
+    if (ui->customPlot->graphCount() > 0)
+      menu->addAction("Remove all graphs", this, SLOT(removeAllGraphs()));
+
+  menu->popup(ui->customPlot->mapToGlobal(pos));
+}
+
+void MainWindow::selectionChanged()
+{
+  // make top and bottom axes be selected synchronously, and handle axis and tick labels as one selectable object:
+  if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
+      ui->customPlot->xAxis2->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->xAxis2->selectedParts().testFlag(QCPAxis::spTickLabels))
+  {
+    ui->customPlot->xAxis2->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
+    ui->customPlot->xAxis->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
+  }
+  // make left and right axes be selected synchronously, and handle axis and tick labels as one selectable object:
+  if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
+      ui->customPlot->yAxis2->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->yAxis2->selectedParts().testFlag(QCPAxis::spTickLabels))
+  {
+    ui->customPlot->yAxis2->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
+    ui->customPlot->yAxis->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
+  }
+
+  // synchronize selection of graphs with selection of corresponding legend items:
+  for (int i=0; i<ui->customPlot->graphCount(); ++i)
+  {
+    QCPGraph *graph = ui->customPlot->graph(i);
+    QCPPlottableLegendItem *item = ui->customPlot->legend->itemWithPlottable(graph);
+    if (item->selected() || graph->selected())
     {
-        // if an axis is selected, only allow the direction of that axis to be dragged
-        // if no axis is selected, both directions may be dragged
+      item->setSelected(true);
+      graph->setSelected(true);
+    }
+  }
+}
 
-        if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            ui->customPlot->axisRect()->setRangeDrag(ui->customPlot->xAxis->orientation());
-        else if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            ui->customPlot->axisRect()->setRangeDrag(ui->customPlot->yAxis->orientation());
-        else
-            ui->customPlot->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
+{
+  ui->statusBar->showMessage(QString("Clicked on graph '%1'.").arg(plottable->name()), 2000);
+}
+
+/*************************************************************************************************************/
+/************************************* FUNCTIONALITY OF 3 SAMPLE BUTTONS *************************************/
+/*************************************************************************************************************/
+
+//---------------------------------------------------------------------------------Anodic Stripping
+// Example Instruction "anoStrip0.101.005000,"
+//      Start Volt (0.10 Volts)    ASstartVolt  float
+//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
+//      Scan Rate (100 mV/S)       ASscanRate   float
+//      Wave Type (  0 - constant  )            int
+//                   1 - sin wave
+//                   2 - triangle wave
+//
+
+void MainWindow::sampASPressed()
+{
+    serial.write("anoStrip0.101.005000,");
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
+
+    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+
+    //ui->sampButton->setText(QString("Resample"));
+}
+
+// Cyclic Voltametry
+//---------------------------------------------------------------------------------Cyclic Voltammetry
+// Example Instruction "cycVolt0.101.001002,"
+//      Start Volt (0.10 Volts)    ASstartVolt  float
+//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
+//      Scan Rate  (100 mV/S)      ASscanRate   float
+//      Wave Type (  0 - constant  )            int
+//                   1 - sin wave
+//                   2 - triangle wave
+//
+
+void MainWindow::sampCVPressed()
+{
+    serial.write("cycVolt0.101.001000,");
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
+
+    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+
+    //ui->sampButton->setText(QString("Resample"));
+}
+
+//---------------------------------------------------------------------------------Potentiostatic Amperometry
+// Example Instruction "potAmpero1.000.60,"
+//      Sampling Time     (1.00 seconds) AsampTime  float
+//      Potential Voltage (1.00 Volts)   PApoten    float
+//
+
+void MainWindow::sampPAPressed()
+{
+    serial.write("potAmpero1.000.60,");
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
+
+    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+
+    //ui->sampButton->setText(QString("Resample"));
+}
+
+
+
+/*************************************************************************************************************/
+/***************************** READ DATA FROM SERIAL PORT AND GRAPH THE VALUES *******************************/
+/*************************************************************************************************************/
+
+void MainWindow::parseAndPlot()
+{
+    statusBar()->clearMessage();
+    QString inByteArray;
+
+    float x = 0;
+    double y = 0;
+    QVector<double> xValues(2000), yValues(2000);
+
+    for (int i = 0; i<2000; i++) {
+        inByteArray = serial.readLine();
+        y = inByteArray.toDouble();
+        xValues[i] = x;
+        yValues[i] = y;
+        x += 0.5;
     }
 
-    void MainWindow::mouseWheel()
-    {
-        // if an axis is selected, only allow the direction of that axis to be zoomed
-        // if no axis is selected, both directions may be zoomed
+    ui->customPlot->addGraph();
+    ui->customPlot->graph(0)->setData(xValues, yValues);
+    ui->customPlot->replot();
+}
 
-        if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            ui->customPlot->axisRect()->setRangeZoom(ui->customPlot->xAxis->orientation());
-        else if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            ui->customPlot->axisRect()->setRangeZoom(ui->customPlot->yAxis->orientation());
-        else
-            ui->customPlot->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
-    }
+/*************************************************************************************************************/
+/************************************ FUNCTIONALITY OF RECONNECT BUTTON **************************************/
+/*************************************************************************************************************/
 
-    void MainWindow::selectionChanged()
-    {
-        /*
-   normally, axis base line, axis tick labels and axis labels are selectable separately, but we want
-   the user only to be able to select the axis as a whole, so we tie the selected states of the tick labels
-   and the axis base line together. However, the axis label shall be selectable individually.
+void MainWindow::reconnectButtonPressed()
+{
+    ui->statusBar->clearMessage();
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
 
-   The selection state of the left and right axes shall be synchronized as well as the state of the
-   bottom and top axes.
+    serial.close();
+    setUpComPort();
+}
 
-   Further, we want to synchronize the selection of the graphs with the selection state of the respective
-   legend item belonging to that graph. So the user can select a graph by either clicking on the graph itself
-   or on its legend item.
-  */
+/*************************************************************************************************************/
+/************************************** FUNCTIONALITY OF CLEAR BUTTON ****************************************/
+/*************************************************************************************************************/
 
-        // make top and bottom axes be selected synchronously, and handle axis and tick labels as one selectable object:
-        if (ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->xAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
-                ui->customPlot->xAxis2->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->xAxis2->selectedParts().testFlag(QCPAxis::spTickLabels))
-        {
-            ui->customPlot->xAxis2->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
-            ui->customPlot->xAxis->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
-        }
-        // make left and right axes be selected synchronously, and handle axis and tick labels as one selectable object:
-        if (ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->yAxis->selectedParts().testFlag(QCPAxis::spTickLabels) ||
-                ui->customPlot->yAxis2->selectedParts().testFlag(QCPAxis::spAxis) || ui->customPlot->yAxis2->selectedParts().testFlag(QCPAxis::spTickLabels))
-        {
-            ui->customPlot->yAxis2->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
-            ui->customPlot->yAxis->setSelectedParts(QCPAxis::spAxis|QCPAxis::spTickLabels);
-        }
+void MainWindow::clearButtonPressed()
+{
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
 
-        // synchronize selection of graphs with selection of corresponding legend items:
-        for (int i=0; i<ui->customPlot->graphCount(); ++i)
-        {
-            QCPGraph *graph = ui->customPlot->graph(i);
-            QCPPlottableLegendItem *item = ui->customPlot->legend->itemWithPlottable(graph);
-            if (item->selected() || graph->selected())
-            {
-                item->setSelected(true);
-                graph->setSelected(true);
-            }
-        }
-    }
+}
 
-    MainWindow::~MainWindow()
-    {
-        delete ui;
-        serial.close();
-    }
-
-    void MainWindow::screenShot()
-    {
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-        QPixmap pm = QPixmap::grabWindow(qApp->desktop()->winId(), this->x()+2, this->y()+2, this->frameGeometry().width()-4, this->frameGeometry().height()-4);
-#else
-        QPixmap pm = qApp->primaryScreen()->grabWindow(qApp->desktop()->winId(), this->x()+2, this->y()+2, this->frameGeometry().width()-4, this->frameGeometry().height()-4);
-#endif
-        QString fileName = demoName.toLower()+".png";
-        fileName.replace(" ", "");
-        pm.save("./screenshots/"+fileName);
-        qApp->quit();
-    }
-
-    void MainWindow::allScreenShots()
-    {
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
-        QPixmap pm = QPixmap::grabWindow(qApp->desktop()->winId(), this->x()+2, this->y()+2, this->frameGeometry().width()-4, this->frameGeometry().height()-4);
-#else
-        QPixmap pm = qApp->primaryScreen()->grabWindow(qApp->desktop()->winId(), this->x()+2, this->y()+2, this->frameGeometry().width()-4, this->frameGeometry().height()-4);
-#endif
-        QString fileName = demoName.toLower()+".png";
-        fileName.replace(" ", "");
-        pm.save("./screenshots/"+fileName);
-
-        if (currentDemoIndex < 18)
-        {
-            if (dataTimer.isActive())
-                dataTimer.stop();
-            dataTimer.disconnect();
-            delete ui->customPlot;
-            ui->customPlot = new QCustomPlot(ui->centralWidget);
-            ui->verticalLayout->addWidget(ui->customPlot);
-            setupDemo(currentDemoIndex+1);
-            // setup delay for demos that need time to develop proper look:
-            int delay = 250;
-            if (currentDemoIndex == 10) // Next is Realtime data demo
-                delay = 12000;
-            else if (currentDemoIndex == 15) // Next is Item demo
-                delay = 5000;
-            QTimer::singleShot(delay, this, SLOT(allScreenShots()));
-        } else
-        {
-            qApp->quit();
-        }
-    }
+/*************************************************************************************************************/
+/***************************************** CREATE MENU FUNCTIONS *********************************************/
+/*************************************************************************************************************/
 
 
 
+/*************************************************************************************************************/
+/********************** FILLS MENU FOR SERIAL PORT INFO ON SETTINGS TAB IN GUI *********************/
+/*************************************************************************************************************/
 
+//void MainWindow::fillPortsInfo()
+//{
+ //   ui->serialPortInfoListBox->clear();
+   // static const QString blankString = QObject::tr("N/A");
+//    QString description;
+//    QString manufacturer;
 
-    void MainWindow::on_pushButton_clicked()
-    {
-        serial.write("cycVolt01223344,");
+ //   foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
+      //  QStringList list;
+//        description = info.description();
+//        manufacturer = info.manufacturer();
+     //   list << info.portName();
+//             << (!description.isEmpty() ? description : blankString)
+//             << (!manufacturer.isEmpty() ? manufacturer : blankString)
+//             << info.systemLocation();
 
-        QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+ //       ui->serialPortInfoListBox->addItem(list.first(), list);
+//    }
+//}
 
-    }
+/*************************************************************************************************************/
+/*********************************************** DESTRUCTOR **************************************************/
+/*************************************************************************************************************/
 
-    void MainWindow::parseAndPlot()
-    {
-        statusBar()->clearMessage();
-        QString inByteArray;
-
-        float key = 0;
-        double value0;
-        graphMemory += 1;
-
-        QVector<double> x(2000), y(2000);
-        for (int q=0; q<50; ++q) {
-            for (int k=0; k<40; ++k) {
-
-                inByteArray = serial.readLine();
-
-                value0 = inByteArray.toDouble();
-
-                ui->customPlot->graph(graphMemory)->addData(key, value0);
-
-                // set data of dots:
-                //ui->customPlot->graph(2)->addData(key, value0);
-
-                // remove data of lines that's outside visible range:
-
-                // rescale value (vertical) axis to fit the current data:
-
-                key += 0.5;
-
-            }
-            ui->customPlot->replot();
-        }
-        // make key axis range scroll with the data (at a constant range size of 8):
-
-
-
-    }
+MainWindow::~MainWindow()
+{
+    delete ui;
+    serial.close();
+}
 
 
