@@ -4,9 +4,10 @@
 
 QT       += core gui
 QT       += serialport
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
-TARGET = plot-examples
+TARGET = OliView
 TEMPLATE = app
 
 SOURCES += main.cpp\
@@ -17,4 +18,7 @@ HEADERS  += mainwindow.h \
          qcustomplot.h
 
 FORMS    += mainwindow.ui
+
+OTHER_FILES += \
+    favicon.ico
 
