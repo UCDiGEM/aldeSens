@@ -400,9 +400,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QCustomPlot" name="customPlot" native="true">
-      <zorder>toolBox2</zorder>
-     </widget>
+     <widget class="QCustomPlot" name="customPlot" native="true"/>
     </item>
    </layout>
   </widget>
@@ -437,7 +435,7 @@
     </property>
     <addaction name="action_10_A"/>
     <addaction name="action_1000_nA"/>
-    <addaction name="action_1000_nA_2"/>
+    <addaction name="action_100_nA"/>
     <addaction name="action_10_nA"/>
    </widget>
    <widget class="QMenu" name="menuGraph">
@@ -489,7 +487,7 @@
     <string>+/- 1000 nA</string>
    </property>
   </action>
-  <action name="action_1000_nA_2">
+  <action name="action_100_nA">
    <property name="text">
     <string>+/- 100 nA</string>
    </property>
