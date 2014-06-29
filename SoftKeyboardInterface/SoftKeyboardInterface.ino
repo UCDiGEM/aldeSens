@@ -1,106 +1,239 @@
-/* aldeSens - UC Davis iGEM 2014
-/  Written by E. Aaron Cohen
-*/
-#include "ADC.h"
+/*
+    Code Developed by the 2014 UC Davis iGEM team (with the help of many examples)
+ */
+//---------------------------------------------------------------------------------Function Specific Variables
+// Anodic Stripping
+float ASstartVolt;    // Value delivered from QT instructions
+float ASpeakVolt;     // Value delivered from QT instructions
+float ASscanRate;     // Value delivered from QT instructions
+int ASwaveType;       // Value delivered from QT instructions
 
+// Cyclic Voltammetry
+float CVstartVolt;    // Value delivered from QT instructions
+float CVpeakVolt;     // Value delivered from QT instructions
+float CVscanRate;     // Value delivered from QT instructions
 
-const int light1 = 11;
-const int light2 = 12;
-const int ledPin = 13;
-const int readPin = A9;
+// Potentiostatic Amperometry 
+float PAsampTime;     // Value delivered from QT instructions
+float PApotVolt;      // Value delivered from QT instructions
+
+// Changing Resolution
+char resolution;
+
+// Changing Sampling Speed
+int samplingDelay = 500;             //(value in µs) >> 1/samplingDelay = Sampling Rate
+float samplingDelayFloat = 500.0;    //(value in µs) >> 1/samplingDelay = Sampling Rate
+
+//---------------------------------------------------------------------------------Pin Assignments
+
+const int readPin = A2;  // Main Analog Input
+const int sp4tOne = 10;  // Resolution Switch 1
+const int sp4tTwo = 11;  // Resolution Switch 2
+
 elapsedMicros usec = 0;
 
+//---------------------------------------------------------------------------------Pin Assignments
 
+String inStruct; // Main instructions from USB
+double value = 0; // ADC reading value
+int readRes = 16; // Resolution of ADC
+double aRef = 3.3; // Analog Reference
 
-ADC *adc = new ADC(); // adc object
-
-RingBuffer *buffer = new RingBuffer;
+//---------------------------------------------------------------------------------Setup
 
 void setup() {
 
   Serial.begin(9600);
-  
+
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(readPin, INPUT);
-  pinMode(light1, OUTPUT);
-  pinMode(light2, OUTPUT);
+  pinMode(readPin, INPUT);
 
   analogWriteResolution(12);
+  analogReadAveraging(32);
+  analogReadRes(16);
 
-  adc->setAveraging(16); // set number of averages
-  adc->setResolution(16); // set bits of resolution
-  adc->setAveraging(16, ADC_1); // set number of averages
-  adc->setResolution(16, ADC_1); // set bits of resolution
+  //adc->setAveraging(32); // set number of averages
+  //adc->setResolution(16); // set bits of resolution
+  //adc->setAveraging(32, ADC_1); // set number of averages
+  //adc->setResolution(16, ADC_1); // set bits of resolution
 
   while (usec < 5000); // wait
   usec = usec - 5000;
 }
 
-
-
-String inStruct;                                                                                                                                                                                  ;
-double value = 0;
-int count = 1;
-int params;
+//---------------------------------------------------------------------------------Main Loop
 
 void loop() {
+  if (Serial.available()) {
+    // Interprets commands from computer
+    // All commands must be terminated with a comma ","
 
-  mainController();
+    inStruct = Serial.readStringUntil(',');
+  }
+
+  //---------------------------------------------------------------------------------Anodic Stripping
+  // Example Instruction "anoStrip0.101.002001,"
+  //     Parsed into 
+  //        float  ASstartVolt  
+  //        float  ASpeakVolt
+  //        float  ASscanRate 
+  //        int    ASwaveType
+  //
+
+  if (inStruct.startsWith("anoStrip")) {
+    String numStruct = inStruct.substring(8);
+    const char * ASSVarray = numStruct.substring(0, 4).c_str();
+    ASstartVolt = atof(ASSVarray);
+    const char * ASPVarray = numStruct.substring(4, 8).c_str();
+    ASpeakVolt = atof(ASPVarray);
+    const char * ASSRarray = numStruct.substring(8, 11).c_str();
+    ASscanRate = atof(ASSRarray);
+    ASwaveType = numStruct.substring(11).toInt();
+
+    anoStrip();
+  }
+
+  //---------------------------------------------------------------------------------Anodic Stripping
+  // Example Instruction "cycVolt0.101.002001,"
+  //     Parsed into 
+  //        float  CVstartVolt  
+  //        float  CVpeakVolt
+  //        float  CVscanRate 
+  //
+
+  if (inStruct.startsWith("cycVolt")) {
+    String numStruct = inStruct.substring(7);
+    const char * CVSTarray = numStruct.substring(0, 4).c_str();
+    CVstartVolt = atof(CVSTarray);
+    const char * CVPVarray = numStruct.substring(4, 8).c_str();
+    CVpeakVolt = atof(CVPVarray);
+    const char * CVSRarray = numStruct.substring(8).c_str();
+    CVscanRate = atof(CVSRarray);
+
+    cycVolt();
+  }
+
+  //---------------------------------------------------------------------------------Parsing Potentiostatic Amperometry
+  //                                                                        
+  // Example Instruction "potAmpero1.001.00,"
+  //      Sampling Time (1.00 seconds)    PAsampTime  float
+  //      Potential Voltage (1.00 Volts)  PApoten     float 
+  //
+  if (inStruct.startsWith("potAmpero")) {
+    String numStruct = inStruct.substring(9);
+    const char * PASTarray = numStruct.substring(0, 4).c_str();
+    PAsampTime = atof(PASTarray);
+    const char * PAPVarray = numStruct.substring(4, 8).c_str();
+    PApotVolt = atof(PAPVarray);
+
+    potAmpero();
+  }
+
+  //---------------------------------------------------------------------------------Parsing Resolution Adjustment
+  // Exmaple Instruction "resolutionA"
+  //      A:  +/- 10 uA
+  //      B:  +/- 1000 nA  
+  //      C:  +/- 100 nA
+  //      D:  +/- 10 nA
+  //
+
+  if (inStruct.startsWith("resolution")) {
+    resolution = inStruct[10];
+
+  }
 
 }
 
-void mainController() {
-   if (Serial.available()) {
-    // Interpret commands from computer
-      inStruct = Serial.readStringUntil(',');
-    }
-// Instruction List:
-//    lightOn: turn pin 11 LED on
-//    lightOFF: turn pin 11 LED off
-//    cycVolt#a#b#c#d: Cyclic Voltametry
-//                          a# (2 digits):    Sampling Time (secs)
-//                          b# (2 digits):    Starting Voltage (volts)
-//                          c# (2 digits):    Ending Voltage (volts)
-//                          d# (any digits):  Scan Rate (volts/second)
-//
-//
-//
-    if(inStruct=="lightOn") { 
-      digitalWrite(light2, HIGH);
-    }
-    
-    else if(inStruct=="lightOff") { 
-      digitalWrite(light2, LOW);
-    } 
-    
-    else if(inStruct.startsWith("cycVolt")) { 
-           
-      int sampTime    = inStruct.substring(7,9).toInt();
-      int startVolt   = inStruct.substring(9,11).toInt();
-      int endVolt     = inStruct.substring(11,13).toInt();
-      int scanRate   = inStruct.substring(13).toInt();
-      cycVolt(sampTime, startVolt, endVolt, scanRate);
-    } 
+
+/*
+    Code Developed by the 2014 UC Davis iGEM team (with the help of many examples)
+ */
+ 
+
+// Sine Function 
+float phase = 0.0;
+float twopi = 3.14159 * 2;
+
+// Cyclic Voltametry
+//---------------------------------------------------------------------------------Cyclic Voltammetry
+// Example Instruction "cycVolt0.101.001002"
+//      Start Volt (0.10 Volts)    ASstartVolt  float
+//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
+//      Scan Rate  (100 mV/S)      ASscanRate   float
+//      Wave Type (  0 - constant  )            int
+//                   1 - sin wave
+//                   2 - triangle wave
+//  
+void cycVolt() {
+  float CVsampTime = CVpeakVolt - CVstartVolt;
+  sample(CVsampTime, 0, CVstartVolt, CVpeakVolt);
+
+  inStruct = "";
 }
 
-// sampTime in seconds (Sampling time)
-/// startVolt in volts
-// endVolt in volts
-// sweepRate
+//---------------------------------------------------------------------------------Potentiostatic Amperometry
+// Example Instruction "potAmpero1.001.00"
+//      Sampling Time     (1.00 seconds) AsampTime  float
+//      Potential Voltage (1.00 Volts)   PApoten    float 
+//
+void potAmpero() {
+  sample(PAsampTime, 0, PApotVolt, 0);
+  inStruct = "";
+}
 
-void cycVolt(int sampTime, int startVolt, int endVolt, int scanRate) {
-      int length = sampTime*2000; // With delay of 500 µs, 2000 samples per second
+//---------------------------------------------------------------------------------Anodic Stripping
+// Example Instruction "anoStrip0.101.005002"
+//      Start Volt (0.10 Volts)    ASstartVolt  float
+//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
+//      Scan Rate (100 mV/S)       ASscanRate   float
+//      Wave Type (  0 - constant  )            int
+//                   1 - sin wave
+//                   2 - triangle wave
+//
+void anoStrip() {
+  float ASsampTime = 1000*(ASpeakVolt - ASstartVolt)/ ASscanRate;
+  sample(ASsampTime, ASwaveType, ASstartVolt, 0);
+  inStruct = "";
+}
+
+void sample(float sampTime, int waveType, float startVolt, float endVolt) {
+  int length = round(sampTime * (1 / samplingDelayFloat * 1000000)); // With delay of 0.5 ms, 2000 samples per second
+  switch (waveType) {
+    //---------------------------------------------------------------------------------Constant Potential
+    case (0):
+    {
+      float val = startVolt / 4095.0 + 2048.0;
+      analogWrite(A14, (int) val);
       for (int i = 0; i < length; i++) {
-        value = adc->analogRead(readPin);
+        value = analogRead(readPin);
+        Serial.println(value * aRef / 65535, 5);
+        while (usec < samplingDelay); // wait
+        usec = usec - samplingDelay;
 
-        buffer->write(value);
-
-        Serial.println(buffer->read()*3.3/adc->getMaxValue(ADC_0),5);
-        while (usec < 500); // wait
-        usec = usec - 500;
       }
-      inStruct = "";
+    }
+    analogWrite(A14, 0);
+    break;
+    //---------------------------------------------------------------------------------Sine Wave
+    case (1):
+    {
+
+      float val2 = sin(phase) * 2000.0 + 2048.0;
+      analogWrite(A14, (int) val2);
+      phase = phase + 0.02;
+      if (phase >= twopi) phase = 0;
+      while (usec < samplingDelay); // wait
+      usec = usec - samplingDelay;
+
+    }
+    break;
+    //---------------------------------------------------------------------------------Triangle Wave
+    // Consider the range of the DAC >> 2.048/4096 = 500 uV (range of DAC = 4096 values (0-4095))
+    //    500 uV == val3 == 1
+    //
+    //
+  case 2: // triangle wave
+    break;
+  }
 }
-
-
-
