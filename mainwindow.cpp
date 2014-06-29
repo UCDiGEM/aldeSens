@@ -54,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    setWindowTitle("OliView");
     ui->setupUi(this);
     ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectAxes | QCP::iSelectPlottables);
 
@@ -103,7 +104,7 @@ void MainWindow::setUpComPort()
 
 void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
 {
-    setWindowTitle("AldeSense");
+
 
     // applies a different color brush to the first 9 graphs
     for (int i=0; i<10; ++i) {
@@ -262,43 +263,43 @@ void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
 
 //---------------------------------------------------------------------------------Anodic Stripping
 // Example Instruction "anoStrip0.101.005000,"
-//      Start Volt (0.10 Volts)    ASstartVolt  float
-//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
-//      Scan Rate (100 mV/S)       ASscanRate   float
-//      Wave Type (  0 - constant  )            int
+//      Start Volt (0.00 Volts)    ASstartVolt  float (must be 3 digits)
+//      Peak Volt  (1.00 Volts)    ASpeakVolt   float (must be 3 digits)
+//      Scan Rate  (500 mV/S)      ASscanRate   float (must be 3 digits)
+//      Wave Type  (  0 - constant )            int   (must be 1 digit)
 //                   1 - sin wave
 //                   2 - triangle wave
 //
 
 void MainWindow::sampASPressed()
 {
-    serial.write("anoStrip0.101.005000,");
+    serial.write("anoStrip0.001.005000,");
     ui->customPlot->clearGraphs();
     ui->customPlot->replot();
 
-    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+    QTimer::singleShot(600, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
 
 // Cyclic Voltametry
 //---------------------------------------------------------------------------------Cyclic Voltammetry
-// Example Instruction "cycVolt0.101.001002,"
-//      Start Volt (0.10 Volts)    ASstartVolt  float
-//      Peak Volt  (1.00 Volts)    ASpeakVolt   float
-//      Scan Rate  (100 mV/S)      ASscanRate   float
-//      Wave Type (  0 - constant  )            int
+// Example Instruction "cycVolt0.101.001001,"
+//      Start Volt (0.10 Volts)    CVstartVolt  float (must be 3 digits)
+//      Peak Volt  (1.00 Volts)    CVpeakVolt   float (must be 3 digits)
+//      Scan Rate  (100 mV/S)      CVscanRate   float (must be 3 digits)
+//      Wave Type (  0 - constant  )            int   (must be 1 digit)
 //                   1 - sin wave
 //                   2 - triangle wave
 //
 
 void MainWindow::sampCVPressed()
 {
-    serial.write("cycVolt0.101.001000,");
+    serial.write("cycVolt0.101.009992,");
     ui->customPlot->clearGraphs();
     ui->customPlot->replot();
 
-    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+    QTimer::singleShot(1800, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -306,16 +307,16 @@ void MainWindow::sampCVPressed()
 //---------------------------------------------------------------------------------Potentiostatic Amperometry
 // Example Instruction "potAmpero1.000.60,"
 //      Sampling Time     (1.00 seconds) AsampTime  float
-//      Potential Voltage (1.00 Volts)   PApoten    float
+//      Potential Voltage (0.60 Volts)   PApoten    float
 //
 
 void MainWindow::sampPAPressed()
 {
-    serial.write("potAmpero1.000.60,");
+    serial.write("potAmpero1.000.80,");
     ui->customPlot->clearGraphs();
     ui->customPlot->replot();
 
-    QTimer::singleShot(1000, this, SLOT(parseAndPlot()));
+    QTimer::singleShot(600, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -333,14 +334,15 @@ void MainWindow::parseAndPlot()
 
     float x = 0;
     double y = 0;
-    QVector<double> xValues(2000), yValues(2000);
 
-    for (int i = 0; i<2000; i++) {
-        inByteArray = serial.readLine();
-        y = inByteArray.toDouble();
-        xValues[i] = x;
-        yValues[i] = y;
-        x += 0.5;
+    QVector<double> xValues(3600), yValues(3600);
+
+    for (int i = 0; i<3600; i++) {
+        inByteArray = serial.readLine();  // This can obviously work better.
+        y = inByteArray.toDouble();       // The array length should be calculated before hand, or
+        xValues[i] = x;                   // we can send over the number of samples on the first line from the teensy
+        yValues[i] = y;                   // Connect a signal to canReadLine() perhaps?
+        x += 0.5;                         // I'd like to discuss this at the next meeting
     }
 
     ui->customPlot->addGraph();
