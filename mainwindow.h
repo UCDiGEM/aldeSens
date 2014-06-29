@@ -52,30 +52,38 @@ class MainWindow;
 
 class MainWindow : public QMainWindow
 {
-  Q_OBJECT
-  
+    Q_OBJECT
+
 public:
-  explicit MainWindow(QWidget *parent = 0);
-  ~MainWindow();
-  
-  void setupDemo(int demoIndex);
-  void setupAldeSensGraph(QCustomPlot *customPlot);
-  
+    explicit MainWindow(QWidget *parent = 0);
+    ~MainWindow();
+
+    void setupAldeSensGraph(QCustomPlot *customPlot);
+    void setUpComPort();
+
 private slots:
-  void parseAndPlot();
-  void selectionChanged();
-  void screenShot();
-  void allScreenShots();
-  void mouseWheel();
-  void mousePress();
-  void on_pushButton_clicked();
+//  void fillPortsInfo();
+    void parseAndPlot();
+    void mouseWheel();
+    void mousePress();
+    void removeSelectedGraph();
+    void removeAllGraphs();
+    void contextMenuRequest(QPoint pos);
+    void selectionChanged();
+    void sampASPressed();
+    void sampPAPressed();
+    void sampCVPressed();
+    void reconnectButtonPressed();
+    void clearButtonPressed();
+    void graphClicked(QCPAbstractPlottable *plottable);
 
 private:
-  Ui::MainWindow *ui;
-  QString demoName;
-  QTimer dataTimer;
-  QCPItemTracer *itemDemoPhaseTracer;
-  int currentDemoIndex;
+    Ui::MainWindow *ui;
+    QString demoName;
+    QTimer dataTimer;
+    QCPItemTracer *itemDemoPhaseTracer;
+    int currentDemoIndex;
 };
 
 #endif // MAINWINDOW_H
+
