@@ -146,8 +146,6 @@ void loop() {
 
 }
 
-
-
 /*
     Code Developed by the 2014 UC Davis iGEM team (with the help of many examples)
  */
@@ -254,7 +252,7 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
     {
       float scanRate = 1000*(endVolt - startVolt)/sampTime;
       float val3 = startVolt/aRef*4096.0 + 2048.0;
-      for (int i = 0; i < samples/2; i++) {
+      for (int i = 0; i < round(samples/2); i++) {
 
         analogWrite(A14, (int)val3);
         val3 += (scanRate/1000.0/samples)*4096.0;
@@ -264,7 +262,7 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
         while (usec < samplingDelay); // wait
         usec = usec - samplingDelay;
       }
-      for (int i = 0; i < samples/2; i++) {
+      for (int i = 0; i < round(samples/2); i++) {
         
         val3 -= (scanRate/1000.0/samples)*4096.0;
         analogWrite(A14, (int)val3);
@@ -279,6 +277,8 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
     analogWrite(A14, 0);
   }
 }
+
+
 
 
 
