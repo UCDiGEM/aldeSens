@@ -65,6 +65,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     setUpComPort();
 
+    fillPortsInfo();
+
     setupAldeSensGraph(ui->customPlot);
 
     connect(ui->sampButtonCV, SIGNAL(clicked()), this, SLOT(sampCVPressed()));
@@ -385,25 +387,29 @@ void MainWindow::clearButtonPressed()
 /********************** FILLS MENU FOR SERIAL PORT INFO ON SETTINGS TAB IN GUI *********************/
 /*************************************************************************************************************/
 
-//void MainWindow::fillPortsInfo()
-//{
- //   ui->serialPortInfoListBox->clear();
-   // static const QString blankString = QObject::tr("N/A");
-//    QString description;
-//    QString manufacturer;
+void MainWindow::fillPortsInfo()
+{
+    //ui->serialPortInfoListBox->clear();
+    static const QString blankString = QObject::tr("N/A");
+    //QString description;
+    //QString manufacturer;
 
- //   foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
-      //  QStringList list;
-//        description = info.description();
-//        manufacturer = info.manufacturer();
-     //   list << info.portName();
-//             << (!description.isEmpty() ? description : blankString)
-//             << (!manufacturer.isEmpty() ? manufacturer : blankString)
-//             << info.systemLocation();
+    foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
+        QStringList list;
+        //description = info.description();
+        //manufacturer = info.manufacturer();
+        list << info.portName();
+             //<< (!description.isEmpty() ? description : blankString)
+             //<< (!manufacturer.isEmpty() ? manufacturer : blankString)
+             //<< info.systemLocation();
 
- //       ui->serialPortInfoListBox->addItem(list.first(), list);
-//    }
-//}
+        //ui->serialPortInfoListBox->addItem(list.first(), list);
+        for (int i = 0; i < list.size(); i++)
+        {
+            ui->menuSelect_Port->addAction(list.at(i));
+        }
+    }
+}
 
 /*************************************************************************************************************/
 /*********************************************** DESTRUCTOR **************************************************/

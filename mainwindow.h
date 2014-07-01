@@ -62,7 +62,7 @@ public:
     void setUpComPort();
 
 private slots:
-//  void fillPortsInfo();
+    void fillPortsInfo();
     void parseAndPlot();
     void mouseWheel();
     void mousePress();
