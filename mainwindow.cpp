@@ -74,6 +74,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->sampButtonAS, SIGNAL(clicked()), this, SLOT(sampASPressed()));
     connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
     connect(ui->clrButton, SIGNAL(clicked()), this, SLOT(clearButtonPressed()));
+
+    connect(ui->action_10_A, SIGNAL(triggered()), this, SLOT(res10ASelected()));
+    connect(ui->action_10_nA, SIGNAL(triggered()), this, SLOT(res10nASelected()));
+    connect(ui->action_100_nA, SIGNAL(triggered()), this, SLOT(res100nASelected()));
+    connect(ui->action_1000_nA, SIGNAL(triggered()), this, SLOT(res1000nASelected()));
 }
 
 /*************************************************************************************************************/
@@ -276,8 +281,8 @@ void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
 void MainWindow::sampASPressed()
 {
     serial.write("anoStrip0.001.005000,");
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
+    //ui->customPlot->clearGraphs();
+    //ui->customPlot->replot();
 
     QTimer::singleShot(600, this, SLOT(parseAndPlot()));
 
@@ -298,8 +303,8 @@ void MainWindow::sampASPressed()
 void MainWindow::sampCVPressed()
 {
     serial.write("cycVolt0.101.009992,");
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
+    //ui->customPlot->clearGraphs();
+    //ui->customPlot->replot();
 
     QTimer::singleShot(1800, this, SLOT(parseAndPlot()));
 
@@ -315,8 +320,8 @@ void MainWindow::sampCVPressed()
 void MainWindow::sampPAPressed()
 {
     serial.write("potAmpero1.000.80,");
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
+    //ui->customPlot->clearGraphs();
+    //ui->customPlot->replot();
 
     QTimer::singleShot(600, this, SLOT(parseAndPlot()));
 
@@ -381,16 +386,12 @@ void MainWindow::clearButtonPressed()
 /***************************************** CREATE MENU FUNCTIONS *********************************************/
 /*************************************************************************************************************/
 
-
-
-/*************************************************************************************************************/
-/********************** FILLS MENU FOR SERIAL PORT INFO ON SETTINGS TAB IN GUI *********************/
-/*************************************************************************************************************/
+//-------------------------------------------------------------------------------------Fill Available Serial Ports
 
 void MainWindow::fillPortsInfo()
 {
     //ui->serialPortInfoListBox->clear();
-    static const QString blankString = QObject::tr("N/A");
+    //static const QString blankString = QObject::tr("N/A");
     //QString description;
     //QString manufacturer;
 
@@ -409,6 +410,34 @@ void MainWindow::fillPortsInfo()
             ui->menuSelect_Port->addAction(list.at(i));
         }
     }
+}
+
+//---------------------------------------------------------------------------------When 10microA Resolution Chosen
+
+void MainWindow::res10ASelected()
+{
+    serial.write("resolutionA");
+}
+
+//-----------------------------------------------------------------------------------When 1000nA Resolution Chosen
+
+void MainWindow::res1000nASelected()
+{
+    serial.write("resolutionB");
+}
+
+//------------------------------------------------------------------------------------When 100nA Resolution Chosen
+
+void MainWindow::res100nASelected()
+{
+    serial.write("resolutionC");
+}
+
+//-------------------------------------------------------------------------------------When 10nA Resolution Chosen
+
+void MainWindow::res10nASelected()
+{
+    serial.write("resolutionD");
 }
 
 /*************************************************************************************************************/

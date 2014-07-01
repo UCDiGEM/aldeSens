@@ -77,6 +77,11 @@ private slots:
     void clearButtonPressed();
     void graphClicked(QCPAbstractPlottable *plottable);
 
+    void res10ASelected();
+    void res10nASelected();
+    void res100nASelected();
+    void res1000nASelected();
+
 private:
     Ui::MainWindow *ui;
     QString demoName;
