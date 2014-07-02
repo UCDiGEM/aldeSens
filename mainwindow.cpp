@@ -397,7 +397,7 @@ void MainWindow::closeSelected()
 
 void MainWindow::resetSelected()
 {
-    ui->customPlot->clearGraphs();
+    //ui->customPlot->clearGraphs();
     ui->customPlot->xAxis->setRange(0, 1000);
     ui->customPlot->yAxis->setRange(0, 3.3);
     ui->customPlot->xAxis->setLabel("Milliseconds (ms)");
@@ -412,9 +412,9 @@ void MainWindow::resetSelected()
 
 void MainWindow::clearAllSelected()
 {
-    resetSelected();
-//    ui->customPlot->clearGraphs();
-//    ui->customPlot->replot();
+ //   resetSelected();
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
 //    delete ui->customPlot;
 //    ui->customPlot = new QCustomPlot(ui->centralWidget);
 //    ui->horizontalLayout->addWidget(ui->customPlot);
