@@ -44,7 +44,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
-#include "qcustomplot.h" // the header file of QCustomPlot. Don't forget to add it to your project, if you use an IDE, so it gets compiled.
+#include "qcustomplot.h" // the header file of QCustomPlot
 
 namespace Ui {
 class MainWindow;
@@ -73,8 +73,9 @@ private slots:
     void sampASPressed();
     void sampPAPressed();
     void sampCVPressed();
-    void reconnectButtonPressed();
-    void clearButtonPressed();
+    void resetSelected();
+    void clearAllSelected();
+    void closeSelected();
     void graphClicked(QCPAbstractPlottable *plottable);
 
     void res10ASelected();

@@ -360,6 +360,19 @@
          <string>Sample</string>
         </property>
        </widget>
+       <widget class="QLabel" name="label">
+        <property name="geometry">
+         <rect>
+          <x>80</x>
+          <y>190</y>
+          <width>62</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="toolBoxPage4_2">
        <property name="geometry">
@@ -535,6 +548,21 @@
   <action name="actionAbout_Us">
    <property name="text">
     <string>About Us</string>
+   </property>
+  </action>
+  <action name="actionHello">
+   <property name="text">
+    <string>hello</string>
+   </property>
+  </action>
+  <action name="actionWork">
+   <property name="text">
+    <string>work</string>
+   </property>
+  </action>
+  <action name="actionHello_2">
+   <property name="text">
+    <string>hello</string>
    </property>
   </action>
  </widget>

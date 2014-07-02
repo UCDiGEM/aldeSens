@@ -72,13 +72,17 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->sampButtonCV, SIGNAL(clicked()), this, SLOT(sampCVPressed()));
     connect(ui->sampButtonPA, SIGNAL(clicked()), this, SLOT(sampPAPressed()));
     connect(ui->sampButtonAS, SIGNAL(clicked()), this, SLOT(sampASPressed()));
-    connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
-    connect(ui->clrButton, SIGNAL(clicked()), this, SLOT(clearButtonPressed()));
+    //connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
+    //connect(ui->clrButton, SIGNAL(clicked()), this, SLOT(clearButtonPressed()));
 
     connect(ui->action_10_A, SIGNAL(triggered()), this, SLOT(res10ASelected()));
     connect(ui->action_10_nA, SIGNAL(triggered()), this, SLOT(res10nASelected()));
     connect(ui->action_100_nA, SIGNAL(triggered()), this, SLOT(res100nASelected()));
     connect(ui->action_1000_nA, SIGNAL(triggered()), this, SLOT(res1000nASelected()));
+
+    connect(ui->actionClear_All, SIGNAL(triggered()), this, SLOT(clearAllSelected()));
+    connect(ui->actionReconnect, SIGNAL(triggered()), this, SLOT(resetSelected()));
+    connect(ui->actionClose, SIGNAL(triggered()), this, SLOT(closeSelected()));
 }
 
 /*************************************************************************************************************/
@@ -336,6 +340,7 @@ void MainWindow::sampPAPressed()
 
 void MainWindow::parseAndPlot()
 {
+    //ui->label->setText(samples);
     statusBar()->clearMessage();
     QString inByteArray;
 
@@ -358,33 +363,58 @@ void MainWindow::parseAndPlot()
 }
 
 /*************************************************************************************************************/
-/************************************ FUNCTIONALITY OF RECONNECT BUTTON **************************************/
-/*************************************************************************************************************/
-
-void MainWindow::reconnectButtonPressed()
-{
-    ui->statusBar->clearMessage();
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
-
-    serial.close();
-    setUpComPort();
-}
-
-/*************************************************************************************************************/
-/************************************** FUNCTIONALITY OF CLEAR BUTTON ****************************************/
-/*************************************************************************************************************/
-
-void MainWindow::clearButtonPressed()
-{
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
-
-}
-
-/*************************************************************************************************************/
 /***************************************** CREATE MENU FUNCTIONS *********************************************/
 /*************************************************************************************************************/
+
+//----------------------------------------------------------------------------------------Functionality of Close
+
+void MainWindow::closeSelected()
+{
+    exit(0);
+}
+
+//------------------------------------------------------------------------------------Functionality of Reset Axis
+
+void MainWindow::resetSelected()
+{
+    ui->customPlot->clearGraphs();
+    ui->customPlot->xAxis->setRange(0, 1000);
+    ui->customPlot->yAxis->setRange(0, 3.3);
+    ui->customPlot->xAxis->setLabel("Milliseconds (ms)");
+    ui->customPlot->yAxis->setLabel("Volts (V)");
+    ui->customPlot->replot();
+
+    //serial.close();
+    //setUpComPort();
+}
+
+//-------------------------------------------------------------------------------------Functionality of Clear All
+
+void MainWindow::clearAllSelected()
+{
+    ui->customPlot->clearGraphs();
+    ui->customPlot->replot();
+//    delete ui->customPlot;
+//    ui->customPlot = new QCustomPlot(ui->centralWidget);
+//    ui->horizontalLayout->addWidget(ui->customPlot);
+//    MainWindow(ui);
+//    setupAldeSensGraph(ui->customPlot);
+//    ui->customPlot->replot();
+//    setWindowTitle("OliView");
+//    ui->setupUi(this);
+//    ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectAxes | QCP::iSelectPlottables);
+
+//    ui->customPlot->xAxis->setRange(0, 1000);
+//    ui->customPlot->yAxis->setRange(0, 3.3);
+//    ui->customPlot->xAxis->setLabel("Milliseconds (ms)");
+//    ui->customPlot->yAxis->setLabel("Volts (V)");
+
+//    setUpComPort();
+
+//    fillPortsInfo();
+
+//    setupAldeSensGraph(ui->customPlot);
+}
 
 //-------------------------------------------------------------------------------------Fill Available Serial Ports
 
