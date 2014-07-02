@@ -76,6 +76,7 @@ private slots:
     void resetSelected();
     void clearAllSelected();
     void closeSelected();
+    void disconnectSelected();
     void graphClicked(QCPAbstractPlottable *plottable);
 
     void res10ASelected();

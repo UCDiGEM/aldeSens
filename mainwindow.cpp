@@ -81,8 +81,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action_1000_nA, SIGNAL(triggered()), this, SLOT(res1000nASelected()));
 
     connect(ui->actionClear_All, SIGNAL(triggered()), this, SLOT(clearAllSelected()));
-    connect(ui->actionReconnect, SIGNAL(triggered()), this, SLOT(resetSelected()));
+    connect(ui->actionReset_Axis, SIGNAL(triggered()), this, SLOT(resetSelected()));
     connect(ui->actionClose, SIGNAL(triggered()), this, SLOT(closeSelected()));
+    connect(ui->actionDisconnect, SIGNAL(triggered()), this, SLOT(disconnectSelected()));
 }
 
 /*************************************************************************************************************/
@@ -115,8 +116,6 @@ void MainWindow::setUpComPort()
 
 void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
 {
-
-
     // applies a different color brush to the first 9 graphs
     for (int i=0; i<10; ++i) {
         customPlot->addGraph(); // blue line
@@ -205,6 +204,8 @@ void MainWindow::mouseWheel()
 /*********************************** GRAPH SELECTION FUNCTIONS ***********************************************/
 /*************************************************************************************************************/
 
+//------------------------------------------------------------------------------------Remove One Graph (Selected Graph)
+
 void MainWindow::removeSelectedGraph()
 {
   if (ui->customPlot->selectedGraphs().size() > 0)
@@ -214,11 +215,16 @@ void MainWindow::removeSelectedGraph()
   }
 }
 
+//----------------------------------------------------------------------------------------------------Remove All Graphs
+
 void MainWindow::removeAllGraphs()
 {
   ui->customPlot->clearGraphs();
   ui->customPlot->replot();
 }
+
+//--------------------------------------------------------------------------------Functionality of Right Click on Mouse
+
 
 void MainWindow::contextMenuRequest(QPoint pos)
 {
@@ -232,6 +238,8 @@ void MainWindow::contextMenuRequest(QPoint pos)
 
   menu->popup(ui->customPlot->mapToGlobal(pos));
 }
+
+//------------------------------------------------------------------------------------Functionality of Selection Change
 
 void MainWindow::selectionChanged()
 {
@@ -263,6 +271,9 @@ void MainWindow::selectionChanged()
   }
 }
 
+//--------------------------------------------------------------------------------------Functionality of Clicking Graph
+
+
 void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
 {
   ui->statusBar->showMessage(QString("Clicked on graph '%1'.").arg(plottable->name()), 2000);
@@ -272,7 +283,7 @@ void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
 /************************************* FUNCTIONALITY OF 3 SAMPLE BUTTONS *************************************/
 /*************************************************************************************************************/
 
-//---------------------------------------------------------------------------------Anodic Stripping
+//-----------------------------------------------------------------------------------------------------Anodic Stripping
 // Example Instruction "anoStrip0.101.005000,"
 //      Start Volt (0.00 Volts)    ASstartVolt  float (must be 3 digits)
 //      Peak Volt  (1.00 Volts)    ASpeakVolt   float (must be 3 digits)
@@ -294,7 +305,7 @@ void MainWindow::sampASPressed()
 }
 
 // Cyclic Voltametry
-//---------------------------------------------------------------------------------Cyclic Voltammetry
+//---------------------------------------------------------------------------------------------------Cyclic Voltammetry
 // Example Instruction "cycVolt0.101.001001,"
 //      Start Volt (0.10 Volts)    CVstartVolt  float (must be 3 digits)
 //      Peak Volt  (1.00 Volts)    CVpeakVolt   float (must be 3 digits)
@@ -315,7 +326,7 @@ void MainWindow::sampCVPressed()
     //ui->sampButton->setText(QString("Resample"));
 }
 
-//---------------------------------------------------------------------------------Potentiostatic Amperometry
+//-------------------------------------------------------------------------------------------Potentiostatic Amperometry
 // Example Instruction "potAmpero1.000.60,"
 //      Sampling Time     (1.00 seconds) AsampTime  float
 //      Potential Voltage (0.60 Volts)   PApoten    float
@@ -366,14 +377,23 @@ void MainWindow::parseAndPlot()
 /***************************************** CREATE MENU FUNCTIONS *********************************************/
 /*************************************************************************************************************/
 
-//----------------------------------------------------------------------------------------Functionality of Close
+//------------------------------------------------------------------------------------------Functionality of Disconnect
+
+void MainWindow::disconnectSelected()
+{
+    clearAllSelected();
+    ui->statusBar->showMessage(QString("COM Port is disconnected"));
+    serial.close();
+}
+
+//-----------------------------------------------------------------------------------------------Functionality of Close
 
 void MainWindow::closeSelected()
 {
     exit(0);
 }
 
-//------------------------------------------------------------------------------------Functionality of Reset Axis
+//------------------------------------------------------------------------------------------Functionality of Reset Axis
 
 void MainWindow::resetSelected()
 {
@@ -388,12 +408,13 @@ void MainWindow::resetSelected()
     //setUpComPort();
 }
 
-//-------------------------------------------------------------------------------------Functionality of Clear All
+//-------------------------------------------------------------------------------------------Functionality of Clear All
 
 void MainWindow::clearAllSelected()
 {
-    ui->customPlot->clearGraphs();
-    ui->customPlot->replot();
+    resetSelected();
+//    ui->customPlot->clearGraphs();
+//    ui->customPlot->replot();
 //    delete ui->customPlot;
 //    ui->customPlot = new QCustomPlot(ui->centralWidget);
 //    ui->horizontalLayout->addWidget(ui->customPlot);
@@ -416,7 +437,7 @@ void MainWindow::clearAllSelected()
 //    setupAldeSensGraph(ui->customPlot);
 }
 
-//-------------------------------------------------------------------------------------Fill Available Serial Ports
+//------------------------------------------------------------------------------------------Fill Available Serial Ports
 
 void MainWindow::fillPortsInfo()
 {
@@ -442,28 +463,28 @@ void MainWindow::fillPortsInfo()
     }
 }
 
-//---------------------------------------------------------------------------------When 10microA Resolution Chosen
+//--------------------------------------------------------------------------------------When 10microA Resolution Chosen
 
 void MainWindow::res10ASelected()
 {
     serial.write("resolutionA");
 }
 
-//-----------------------------------------------------------------------------------When 1000nA Resolution Chosen
+//----------------------------------------------------------------------------------------When 1000nA Resolution Chosen
 
 void MainWindow::res1000nASelected()
 {
     serial.write("resolutionB");
 }
 
-//------------------------------------------------------------------------------------When 100nA Resolution Chosen
+//-----------------------------------------------------------------------------------------When 100nA Resolution Chosen
 
 void MainWindow::res100nASelected()
 {
     serial.write("resolutionC");
 }
 
-//-------------------------------------------------------------------------------------When 10nA Resolution Chosen
+//------------------------------------------------------------------------------------------When 10nA Resolution Chosen
 
 void MainWindow::res10nASelected()
 {
