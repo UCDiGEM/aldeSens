@@ -67,12 +67,15 @@ MainWindow::MainWindow(QWidget *parent) :
     setUpComPort();
 
     setupAldeSensGraph(ui->customPlot);
-
+    
+    setupWaveTypes();
+    
     connect(ui->sampButtonCV, SIGNAL(clicked()), this, SLOT(sampCVPressed()));
     connect(ui->sampButtonPA, SIGNAL(clicked()), this, SLOT(sampPAPressed()));
     connect(ui->sampButtonAS, SIGNAL(clicked()), this, SLOT(sampASPressed()));
     //connect(ui->reconButton, SIGNAL(clicked()), this, SLOT(reconnectButtonPressed()));
     //connect(ui->clrButton, SIGNAL(clicked()), this, SLOT(clearButtonPressed()));
+    connect(ui->ASwaveType, SIGNAL(activated(int)), this, SLOT(waveType()));
 
     connect(ui->action_10_A, SIGNAL(triggered()), this, SLOT(res10ASelected()));
     connect(ui->action_10_nA, SIGNAL(triggered()), this, SLOT(res10nASelected()));
@@ -89,6 +92,43 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action10000_Hz, SIGNAL(triggered()), this, SLOT(rate10000Selected()));
 
     sampleRate = 2000;
+    waveNum = ;
+ }
+ 
+ /*************************************************************************************************************/
+ /************************** INITIALIZE ALL WAVE TYPES USING ICONS IN DROP DOWN MENU **************************/
+ /*************************************************************************************************************/
+ 
+ void MainWindow::setupWaveTypes()
+ {
+     QIcon sineWave(":/Images/SineWave.png");
+     QIcon triangleWave(":/Images/TriangleWave.png");
+     QIcon squareWave(":/Images/SquareWave.png");
+ 
+     ui->ASwaveType->insertItem(1, sineWave, "Sine");
+     ui->ASwaveType->setIconSize(QSize(64,64));
+     ui->ASwaveType->insertItem(2, triangleWave, "Triangle");
+     ui->ASwaveType->setIconSize(QSize(64,64));
+     ui->ASwaveType->insertItem(3, squareWave, "Square");
+     ui->ASwaveType->setIconSize(QSize(64,64));
+ 
+ }
+ 
+ /*************************************************************************************************************/
+ /********************* INITIALIZE WAVE TYPE BASED ON USER'S CHOICE FROM DROP DOWN MENU ***********************/
+ /*************************************************************************************************************/
+ 
+ void MainWindow::waveType()
+ {
+     int index = ui->ASwaveType->currentIndex();
+ 
+     if (index == 3) {
+         waveNum = 0;    //stay with default value for graphing
+         return;
+     }
+ 
+     waveNum = index;
+  }
 }
 
 /*************************************************************************************************************/
@@ -306,14 +346,15 @@ void MainWindow::sampASPressed()
     QString ASpv = QString::number(ui->ASpeakVolt->value(),'f',2);
     QString ASsrBuf = QString::number(ui->ASscanRate->value());
     QString ASsr;
-
+    QString wave = QString::number(waveNum);
+    
     switch (ASsrBuf.length()) {
     case 2: ASsr = "00" + ASsrBuf; break;
     case 3: ASsr = "0" + ASsrBuf; break;
     case 4: ASsr = ASsrBuf; break;
     }
     
-    QString mainInstructions = ("anoStrip!"+ASsv+"@"+ASpv+"#"+ASsr+"$"+"2%");
+    QString mainInstructions = ("anoStrip!"+ASsv+"@"+ASpv+"#"+ASsr+"$"+wave+"%");
     serial.write(mainInstructions.toStdString().c_str());
     float ASpeak = (ui->ASpeakVolt->value());
     float ASstart = (ui->ASstartVolt->value());
