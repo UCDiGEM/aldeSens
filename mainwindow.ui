@@ -201,10 +201,10 @@
        <widget class="QComboBox" name="ASwaveType">
         <property name="geometry">
          <rect>
-          <x>90</x>
-          <y>156</y>
+          <x>80</x>
+          <y>160</y>
           <width>161</width>
-          <height>51</height>
+          <height>45</height>
          </rect>
         </property>
         <item>
@@ -486,7 +486,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QCustomPlot" name="customPlot" native="true"/>
+     <widget class="QCustomPlot" name="customPlot" native="true">
+      <zorder>ASwaveType</zorder>
+     </widget>
     </item>
    </layout>
   </widget>
