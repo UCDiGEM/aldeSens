@@ -60,6 +60,7 @@ public:
 
     void setupAldeSensGraph(QCustomPlot *customPlot);
     void setUpComPort();
+    void setupWaveTypes();
 
 private slots:
     void fillPortsInfo();
@@ -88,6 +89,8 @@ private slots:
     void rate5000Selected();
     void rate10000Selected();
 
+    void waveType();
+
 private:
     Ui::MainWindow *ui;
     QString demoName;
@@ -97,6 +100,7 @@ private:
 
     int samples;
     int sampleRate;
+    int waveNum;
 };
 
 #endif // MAINWINDOW_H
