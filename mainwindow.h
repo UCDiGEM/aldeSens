@@ -42,7 +42,9 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
+    
+    void setupWaveTypes();
+    void waveType();
     void setupAldeSensGraph(QCustomPlot *customPlot);
     void setUpComPort();
 
@@ -83,7 +85,8 @@ private:
     int graphMemory;        // used in parseAndPlot()
     int sampleNumber;       // used in parseAndPlot()
     //double xVal;             // used in parseAndPlot()
-
+    
+    int waveNum;
 
 
 };
