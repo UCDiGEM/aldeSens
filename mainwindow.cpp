@@ -351,7 +351,7 @@ void MainWindow::sampCVPressed()
 
     QString mainInstructions = ("cycVolt!"+CVsv+"@"+CVpv+"#"+CVsr+"$"+"2%");
     serial.write(mainInstructions.toStdString().c_str());
-    qDebug() << mainInstructions.toStdString().c_str();
+
     float CVpeak = (ui->CVpeakVolt->value());
     float CVstart = (ui->CVstartVolt->value());
     float CVscan = (ui->CVscanRate->value())/1000.0;
@@ -421,7 +421,7 @@ void MainWindow::parseAndPlot()
     //ui->statusBar->showMessage(QString("Sampling Done!"));
     //ui->label->setText(samples);
 
-    statusBar()->clearMessage();
+   
     QString inByteArray;
 
     float x = 0;
