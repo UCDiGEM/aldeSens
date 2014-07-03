@@ -44,11 +44,11 @@ public:
     ~MainWindow();
     
     void setupWaveTypes();
-    void waveType();
     void setupAldeSensGraph(QCustomPlot *customPlot);
     void setUpComPort();
 
 private slots:
+    void waveType();
     void fillPortsInfo();
     void parseAndPlot();
     void sampleSetup();
@@ -82,7 +82,7 @@ private:
     int samples;
     int sampleRate;
 
-    int graphMemory;        // used in parseAndPlot()
+    //int graphMemory;        // used in parseAndPlot()
     int sampleNumber;       // used in parseAndPlot()
     //double xVal;             // used in parseAndPlot()
     
