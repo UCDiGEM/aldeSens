@@ -84,12 +84,19 @@ private slots:
     void res100nASelected();
     void res1000nASelected();
 
+    void rate2000Selected();
+    void rate5000Selected();
+    void rate10000Selected();
+
 private:
     Ui::MainWindow *ui;
     QString demoName;
     QTimer dataTimer;
     QCPItemTracer *itemDemoPhaseTracer;
     int currentDemoIndex;
+
+    int samples;
+    int sampleRate;
 };
 
 #endif // MAINWINDOW_H

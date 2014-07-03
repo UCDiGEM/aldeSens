@@ -84,6 +84,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionReset_Axis, SIGNAL(triggered()), this, SLOT(resetSelected()));
     connect(ui->actionClose, SIGNAL(triggered()), this, SLOT(closeSelected()));
     connect(ui->actionDisconnect, SIGNAL(triggered()), this, SLOT(disconnectSelected()));
+
+    connect(ui->action2000_Hz, SIGNAL(triggered()), this, SLOT(rate2000Selected()));
+    connect(ui->action5000_Hz, SIGNAL(triggered()), this, SLOT(rate5000Selected()));
+    connect(ui->action10000_Hz, SIGNAL(triggered()), this, SLOT(rate10000Selected()));
+
+    sampleRate = 2000;
 }
 
 /*************************************************************************************************************/
@@ -92,7 +98,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::setUpComPort()
 {
-    serial.setPortName("com6");
+    serial.setPortName("/dev/tty.usbmodem419571");
     if (serial.open(QIODevice::ReadWrite))
     {
         serial.setBaudRate(QSerialPort::Baud9600);
@@ -119,7 +125,7 @@ void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
     // applies a different color brush to the first 9 graphs
     for (int i=0; i<10; ++i) {
         customPlot->addGraph(); // blue line
-        customPlot->graph(i)->setBrush(QBrush(QColor(240, 255, 200))); // I think this is the fill under the line, it's ugly.
+        //customPlot->graph(i)->setBrush(QBrush(QColor(240, 255, 200))); // I think this is the fill under the line, it's ugly.
         customPlot->graph(i)->setAntialiasedFill(false);
 
         switch (i) {
@@ -295,11 +301,34 @@ void MainWindow::graphClicked(QCPAbstractPlottable *plottable)
 
 void MainWindow::sampASPressed()
 {
-    serial.write("anoStrip0.001.005000,");
+    //serial.write("anoStrip0.001.005000,");
+    QString ASsv = QString::number(ui->ASstartVolt->value(),'f',2);
+    QString ASpv = QString::number(ui->ASpeakVolt->value(),'f',2);
+    QString ASsrBuf = QString::number(ui->ASscanRate->value());
+    QString ASsr;
+
+    switch (ASsrBuf.length()) {
+        case 2: ASsr = "00" + ASsrBuf; break;
+        case 3: ASsr = "0" + ASsrBuf; break;
+        case 4: ASsr = ASsrBuf; break;
+    }
+
+    //qDebug() << CVsr;
+
+    QString mainInstructions = ("anoStrip"+ASsv+ASpv+ASsr+"2,");
+    serial.write(mainInstructions.toStdString().c_str());
+    float ASpeak = (ui->ASpeakVolt->value());
+    float ASstart = (ui->ASstartVolt->value());
+    float ASscan = (ui->ASscanRate->value())/1000.0;
+    samples = (sampleRate * (ASpeak - ASstart) / ASscan);
+//    qDebug() << ASpeak;
+//    qDebug() << ASstart;
+//    qDebug() << ASscan;
+//    qDebug() << samples;
     //ui->customPlot->clearGraphs();
     //ui->customPlot->replot();
 
-    QTimer::singleShot(600, this, SLOT(parseAndPlot()));
+    QTimer::singleShot((samples/sampleRate)*1000, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -317,11 +346,31 @@ void MainWindow::sampASPressed()
 
 void MainWindow::sampCVPressed()
 {
-    serial.write("cycVolt0.101.009992,");
+    //serial.write("cycVolt0.101.009992,");
+    QString CVsv = QString::number(ui->CVstartVolt->value(),'f',2);
+    QString CVpv = QString::number(ui->CVpeakVolt->value(),'f',2);
+    QString CVsrBuf = QString::number(ui->CVscanRate->value());
+    QString CVsr;
+
+    switch (CVsrBuf.length()) {
+        case 2: CVsr = "00" + CVsrBuf; break;
+        case 3: CVsr = "0" + CVsrBuf; break;
+        case 4: CVsr = CVsrBuf; break;
+    }
+
+    //qDebug() << CVsr;
+
+    QString mainInstructions = ("cycVolt"+CVsv+CVpv+CVsr+"2,");
+    serial.write(mainInstructions.toStdString().c_str());
+
+    float CVpeak = (ui->CVpeakVolt->value());
+    float CVstart = (ui->CVstartVolt->value());
+    float CVscan = (ui->CVscanRate->value())/1000.0;
+    samples = (sampleRate * (CVpeak - CVstart) / CVscan);
     //ui->customPlot->clearGraphs();
     //ui->customPlot->replot();
 
-    QTimer::singleShot(1800, this, SLOT(parseAndPlot()));
+    QTimer::singleShot((samples/sampleRate)*1000, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -334,11 +383,21 @@ void MainWindow::sampCVPressed()
 
 void MainWindow::sampPAPressed()
 {
-    serial.write("potAmpero1.000.80,");
+    //serial.write("potAmpero1.000.80,");
+    QString PApv = QString::number(ui->PApotVolt->value(),'f',2);
+    QString PAst = QString::number(ui->PAsampTime->value(),'f',2);
+
+    //qDebug() << CVsr;
+
+    QString mainInstructions = ("potAmpero"+PApv+PAst+"0,");
+    serial.write(mainInstructions.toStdString().c_str());
+
+    float PAtime = (ui->PAsampTime->value());
+    samples = (sampleRate * PAtime);
     //ui->customPlot->clearGraphs();
     //ui->customPlot->replot();
 
-    QTimer::singleShot(600, this, SLOT(parseAndPlot()));
+    QTimer::singleShot((samples/sampleRate)*1000, this, SLOT(parseAndPlot()));
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -358,14 +417,15 @@ void MainWindow::parseAndPlot()
     float x = 0;
     double y = 0;
 
-    QVector<double> xValues(3600), yValues(3600);
+    QVector<double> xValues(samples), yValues(samples);
 
-    for (int i = 0; i<3600; i++) {
+    for (int i = 0; i<samples; i++) {
         inByteArray = serial.readLine();  // This can obviously work better.
         y = inByteArray.toDouble();       // The array length should be calculated before hand, or
         xValues[i] = x;                   // we can send over the number of samples on the first line from the teensy
         yValues[i] = y;                   // Connect a signal to canReadLine() perhaps?
-        x += 0.5;                         // I'd like to discuss this at the next meeting
+        x += 1000/float(sampleRate);                // I'd like to discuss this at the next meeting
+        qDebug() << x;
     }
 
     ui->customPlot->addGraph();
@@ -376,6 +436,27 @@ void MainWindow::parseAndPlot()
 /*************************************************************************************************************/
 /***************************************** CREATE MENU FUNCTIONS *********************************************/
 /*************************************************************************************************************/
+
+//-------------------------------------------------------------------------------------------------When 2000Hz Selected
+
+void MainWindow::rate2000Selected()
+{
+    sampleRate = 2000;
+}
+
+//-------------------------------------------------------------------------------------------------When 5000Hz Selected
+
+void MainWindow::rate5000Selected()
+{
+    sampleRate = 5000;
+}
+
+//------------------------------------------------------------------------------------------------When 10000Hz Selected
+
+void MainWindow::rate10000Selected()
+{
+    sampleRate = 10000;
+}
 
 //------------------------------------------------------------------------------------------Functionality of Disconnect
 
