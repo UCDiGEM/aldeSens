@@ -22,8 +22,13 @@ float PApotVolt;      // Value delivered from QT instructions
 char resolution;
 
 // Changing Sampling Speed
-int samplingDelay = 500;             //(value in µs) >> 1/samplingDelay = Sampling Rate
-float samplingDelayFloat = 500.0;    //(value in µs) >> 1/samplingDelay = Sampling Rate
+
+float sampleRateFloat = 2000.0;
+int sampleRate = (int)sampleRateFloat;
+int samplingDelay = (int)(1000000/sampleRate);             //(value in µs) >> 1/samplingDelay = Sampling Rate
+float samplingDelayFloat = (float)samplingDelay;    //(value in µs) >> 1/samplingDelay = Sampling Rate
+
+
 
 //---------------------------------------------------------------------------------Pin Assignments
 
@@ -33,9 +38,14 @@ const int sp4tTwo = 11;  // Resolution Switch 2
 
 elapsedMicros usec = 0;
 
-//---------------------------------------------------------------------------------Pin Assignments
+//---------------------------------------------------------------------------------Instructions
 
 String inStruct;  // Main instructions from USB
+String twoStruct;
+String threeStruct;
+String fourStruct;
+String fiveStruct;
+
 double value = 0; // ADC reading value
 float aRef = 3.3; // Analog Reference
 
@@ -53,12 +63,7 @@ void setup() {
   analogReadAveraging(32);
   analogReadRes(16);
 
-  //adc->setAveraging(32); // set number of averages
-  //adc->setResolution(16); // set bits of resolution
-  //adc->setAveraging(32, ADC_1); // set number of averages
-  //adc->setResolution(16, ADC_1); // set bits of resolution
-
-  while (usec < 5000); // wait
+  while (usec < 5000);
   usec = usec - 5000;
 }
 
@@ -69,7 +74,11 @@ void loop() {
     // Interprets commands from computer
     // All commands must be terminated with a comma ","
 
-    inStruct = Serial.readStringUntil(',');
+    inStruct = Serial.readStringUntil('!');
+    twoStruct = Serial.readStringUntil('@');
+    threeStruct = Serial.readStringUntil('#');
+    fourStruct = Serial.readStringUntil('$');
+    fiveStruct = Serial.readStringUntil('%');
   }
 
   //---------------------------------------------------------------------------------Anodic Stripping
@@ -82,14 +91,13 @@ void loop() {
   //
 
   if (inStruct.startsWith("anoStrip")) {
-    String numStruct = inStruct.substring(8);
-    const char * ASSVarray = numStruct.substring(0, 4).c_str();
+    const char * ASSVarray = twoStruct.c_str();
     ASstartVolt = atof(ASSVarray);
-    const char * ASPVarray = numStruct.substring(4, 8).c_str();
+    const char * ASPVarray = threeStruct.c_str();
     ASpeakVolt = atof(ASPVarray);
-    const char * ASSRarray = numStruct.substring(8, 11).c_str();
+    const char * ASSRarray = fourStruct.c_str();
     ASscanRate = atof(ASSRarray);
-    ASwaveType = numStruct.substring(11).toInt();
+    ASwaveType = fiveStruct.toInt();
 
     anoStrip();
   }
@@ -105,13 +113,13 @@ void loop() {
 
   if (inStruct.startsWith("cycVolt")) {
     String numStruct = inStruct.substring(7);
-    const char * CVSTarray = numStruct.substring(0, 4).c_str();
+    const char * CVSTarray = twoStruct.c_str();
     CVstartVolt = atof(CVSTarray);
-    const char * CVPVarray = numStruct.substring(4, 8).c_str();
+    const char * CVPVarray = threeStruct.c_str();
     CVpeakVolt = atof(CVPVarray);
-    const char * CVSRarray = numStruct.substring(8,11).c_str();
+    const char * CVSRarray = fourStruct.c_str();
     CVscanRate = atof(CVSRarray);
-    CVwaveType = numStruct.substring(11).toInt();
+    CVwaveType = fiveStruct.toInt();
 
     cycVolt();
   }
@@ -123,9 +131,9 @@ void loop() {
   //
   if (inStruct.startsWith("potAmpero")) {
     String numStruct = inStruct.substring(9);
-    const char * PASTarray = numStruct.substring(0, 4).c_str();
+    const char * PASTarray = twoStruct.c_str();
     PAsampTime = atof(PASTarray);
-    const char * PAPVarray = numStruct.substring(4).c_str();
+    const char * PAPVarray = threeStruct.c_str();
     PApotVolt = atof(PAPVarray);
 
     potAmpero();
@@ -144,7 +152,15 @@ void loop() {
 
   }
 
+  if (inStruct.startsWith("changeSampleRate")) {
+    sampleRate = inStruct.substring(16).toInt();
+    samplingDelay = (int)(1000/sampleRate);             //(value in µs) >> 1/samplingDelay = Sampling Rate
+    samplingDelayFloat = (float)samplingDelay;
+
+  }
+
 }
+
 
 /*
     Code Developed by the 2014 UC Davis iGEM team (with the help of many examples)
@@ -167,7 +183,7 @@ float twopi = 3.14159 * 2;
 //  
 void cycVolt() {
   float CVsampTime = 2000*(CVpeakVolt - CVstartVolt)/CVscanRate;
-  sample(CVsampTime, CVwaveType, CVstartVolt, CVpeakVolt);
+  sample(CVsampTime, CVwaveType, CVstartVolt, CVpeakVolt, CVscanRate);
 
   inStruct = "";
 }
@@ -178,7 +194,7 @@ void cycVolt() {
 //      Potential Voltage (1.00 Volts)   PApotVolt    float 
 //
 void potAmpero() {
-  sample(PAsampTime, 0, PApotVolt, 0);
+  sample(PAsampTime, 0, PApotVolt, 0, 0);
   inStruct = "";
 }
 
@@ -193,7 +209,7 @@ void potAmpero() {
 //
 void anoStrip() {
   float ASsampTime = 1000*(ASpeakVolt - ASstartVolt)/ ASscanRate;
-  sample(ASsampTime, ASwaveType, ASstartVolt, ASpeakVolt);
+  sample(ASsampTime, ASwaveType, ASstartVolt, ASpeakVolt, ASscanRate);
   inStruct = "";
 }
 //---------------------------------------------------------------------------------Sampling Loop
@@ -204,7 +220,7 @@ void anoStrip() {
 //      float endVolt (or peakVolt)
 //
 
-void sample(float sampTime, int waveType, float startVolt, float endVolt) {
+void sample(float sampTime, int waveType, float startVolt, float endVolt, float scanRate) {
   int samples = round(sampTime * (1 / samplingDelayFloat * 1000000)); // With delay of 0.5 ms, 2000 samples per second
   switch (waveType) {
     //---------------------------------------------------------------------------------Constant Potential
@@ -250,12 +266,11 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
     //
     case (2): // triangle wave
     {
-      float scanRate = 1000*(endVolt - startVolt)/sampTime;
       float val3 = startVolt/aRef*4096.0 + 2048.0;
       for (int i = 0; i < round(samples/2); i++) {
 
         analogWrite(A14, (int)val3);
-        val3 += (scanRate/1000.0/samples)*4096.0;
+        val3 += 4096.0*scanRate/1000.0/sampleRate/aRef;
 
         value = analogRead(readPin);                  // analog read == # out of 2^16
         Serial.println(value * aRef / 65535.0, 6);    // ratio, value/2^16, is the percent of ADC reference... * aRef (ADC Reference Voltage) == Voltage measured
@@ -264,7 +279,7 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
       }
       for (int i = 0; i < round(samples/2); i++) {
         
-        val3 -= (scanRate/1000.0/samples)*4096.0;
+        val3 -= 4096.0*scanRate/1000.0/sampleRate/aRef;
         analogWrite(A14, (int)val3);
 
         value = analogRead(readPin);                  // analog read == # out of 2^16
@@ -277,6 +292,7 @@ void sample(float sampTime, int waveType, float startVolt, float endVolt) {
     analogWrite(A14, 0);
   }
 }
+
 
 
 
