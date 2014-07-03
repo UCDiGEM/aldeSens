@@ -22,3 +22,6 @@ FORMS    += mainwindow.ui
 OTHER_FILES += \
     favicon.ico
 
+RESOURCES += \
+    OliView.qrc
+
