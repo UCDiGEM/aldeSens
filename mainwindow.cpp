@@ -92,44 +92,48 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action10000_Hz, SIGNAL(triggered()), this, SLOT(rate10000Selected()));
 
     sampleRate = 2000;
-    waveNum = ;
- }
- 
- /*************************************************************************************************************/
- /************************** INITIALIZE ALL WAVE TYPES USING ICONS IN DROP DOWN MENU **************************/
- /*************************************************************************************************************/
- 
- void MainWindow::setupWaveTypes()
- {
-     QIcon sineWave(":/Images/SineWave.png");
-     QIcon triangleWave(":/Images/TriangleWave.png");
-     QIcon squareWave(":/Images/SquareWave.png");
- 
-     ui->ASwaveType->insertItem(1, sineWave, "Sine");
-     ui->ASwaveType->setIconSize(QSize(64,64));
-     ui->ASwaveType->insertItem(2, triangleWave, "Triangle");
-     ui->ASwaveType->setIconSize(QSize(64,64));
-     ui->ASwaveType->insertItem(3, squareWave, "Square");
-     ui->ASwaveType->setIconSize(QSize(64,64));
- 
- }
- 
- /*************************************************************************************************************/
- /********************* INITIALIZE WAVE TYPE BASED ON USER'S CHOICE FROM DROP DOWN MENU ***********************/
- /*************************************************************************************************************/
- 
- void MainWindow::waveType()
- {
-     int index = ui->ASwaveType->currentIndex();
- 
-     if (index == 3) {
-         waveNum = 0;    //stay with default value for graphing
-         return;
-     }
- 
-     waveNum = index;
-  }
+    waveNum = 0;
 }
+
+/*************************************************************************************************************/
+/************************** INITIALIZE ALL WAVE TYPES USING ICONS IN DROP DOWN MENU **************************/
+/*************************************************************************************************************/
+
+void MainWindow::setupWaveTypes()
+{
+    QIcon sineWave(":/Images/SineWave.png");
+    QIcon triangleWave(":/Images/TriangleWave.png");
+    QIcon squareWave(":/Images/SquareWave.png");
+
+    ui->ASwaveType->insertItem(1, sineWave, "Sine");
+    ui->ASwaveType->setIconSize(QSize(64,64));
+    ui->ASwaveType->insertItem(2, triangleWave, "Triangle");
+    ui->ASwaveType->setIconSize(QSize(64,64));
+    ui->ASwaveType->insertItem(3, squareWave, "Square");
+    ui->ASwaveType->setIconSize(QSize(64,64));
+
+}
+
+/*************************************************************************************************************/
+/********************* INITIALIZE WAVE TYPE BASED ON USER'S CHOICE FROM DROP DOWN MENU ***********************/
+/*************************************************************************************************************/
+
+void MainWindow::waveType()
+{
+    int index = ui->ASwaveType->currentIndex();
+
+    if (index == 3) {
+        waveNum = 0;    //stay with default value for graphing
+        return;
+    }
+    if (index == 2) {
+        samples = 2*samples;
+
+    }
+
+    waveNum = index;
+}
+
 
 /*************************************************************************************************************/
 /******************************* INITIALIZE ALL SERIAL PORT DATA FOR SAMPLING ********************************/
@@ -137,7 +141,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::setUpComPort()
 {
-    serial.setPortName("com6");
+    serial.setPortName("com3");
     if (serial.open(QIODevice::ReadWrite))
     {
         serial.setBaudRate(QSerialPort::Baud9600);
@@ -161,6 +165,7 @@ void MainWindow::setUpComPort()
 
 void MainWindow::setupAldeSensGraph(QCustomPlot *customPlot)
 {
+
     // applies a different color brush to the first 9 graphs
     for (int i=0; i<10; ++i) {
         customPlot->addGraph(); // blue line
@@ -347,7 +352,7 @@ void MainWindow::sampASPressed()
     QString ASsrBuf = QString::number(ui->ASscanRate->value());
     QString ASsr;
     QString wave = QString::number(waveNum);
-    
+
     switch (ASsrBuf.length()) {
     case 2: ASsr = "00" + ASsrBuf; break;
     case 3: ASsr = "0" + ASsrBuf; break;
@@ -355,6 +360,7 @@ void MainWindow::sampASPressed()
     }
     
     QString mainInstructions = ("anoStrip!"+ASsv+"@"+ASpv+"#"+ASsr+"$"+wave+"%");
+    //qDebug() << mainInstructions;
     serial.write(mainInstructions.toStdString().c_str());
     float ASpeak = (ui->ASpeakVolt->value());
     float ASstart = (ui->ASstartVolt->value());
@@ -365,6 +371,8 @@ void MainWindow::sampASPressed()
     ui->customPlot->replot();
 
     QTimer::singleShot((samples/sampleRate)*1000, this, SLOT(parseAndPlot()));
+
+
 
     //ui->sampButton->setText(QString("Resample"));
 }
@@ -462,7 +470,7 @@ void MainWindow::parseAndPlot()
     //ui->statusBar->showMessage(QString("Sampling Done!"));
     //ui->label->setText(samples);
 
-   
+
     QString inByteArray;
 
     float x = 0;
@@ -479,8 +487,9 @@ void MainWindow::parseAndPlot()
     }
 
     ui->customPlot->addGraph();
-    ui->customPlot->graph(graphMemory)->setData(xValues, yValues);
+    ui->customPlot->graph(0)->setData(xValues, yValues);
     ui->customPlot->replot();
+    ui->statusBar->showMessage(QString("Sampling Done!"), 2);
 }
 
 /*************************************************************************************************************/
@@ -491,10 +500,7 @@ void MainWindow::parseAndPlot()
 
 void MainWindow::sampleSetup() {
     ui->statusBar->showMessage(QString("Sampling..."));
-    graphMemory += 1;
-    if (graphMemory > 9) {
-        graphMemory = 0;
-    }
+
     ui->customPlot->addGraph();
     sampleNumber = 0;
 
@@ -546,8 +552,8 @@ void MainWindow::closeSelected()
 void MainWindow::resetSelected()
 {
     //ui->customPlot->clearGraphs();
-    ui->customPlot->xAxis->setRange(0, 1000);
-    ui->customPlot->yAxis->setRange(0, samples/sampleRate);
+    ui->customPlot->xAxis->setRange(0, 1000*samples/sampleRate);
+    ui->customPlot->yAxis->setRange(0, 3.3);
     ui->customPlot->xAxis->setLabel("Milliseconds (ms)");
     ui->customPlot->yAxis->setLabel("Volts (V)");
     ui->customPlot->replot();
