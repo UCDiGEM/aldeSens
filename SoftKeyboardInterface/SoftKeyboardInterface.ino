@@ -61,7 +61,6 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(readPin, INPUT);
-  pinMode(readPin, INPUT);
   pinMode(outPin, OUTPUT);
 
   analogWriteResolution(12);
