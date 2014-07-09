@@ -50,7 +50,7 @@ String fourStruct;
 String fiveStruct;
 
 double value = 0; // ADC reading value
-float aRef = 2.046; // Analog Reference
+float aRef = 2.048; // Analog Reference
 float DACaRef = 3.3;
 
 //---------------------------------------------------------------------------------Setup
